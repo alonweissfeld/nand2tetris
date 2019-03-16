@@ -1,0 +1,5 @@
+.DS_Store
+
+# Ignore any hardware simulator output files
+*.dat
+*.out
