@@ -3,3 +3,6 @@
 # Ignore any hardware simulator output files
 *.dat
 *.out
+
+# Ignore binary hack files
+*.hack
