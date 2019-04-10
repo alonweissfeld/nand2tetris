@@ -29,7 +29,7 @@ comp_codes = {
     'D-A': '010011',
     'A-D': '000111',
     'D&A': '000000',
-    'D|A': '010101'}
+    'D|A': '010101'
 }
 
 # The translation of the jump field to it's binary form
@@ -67,11 +67,11 @@ class Code:
         """
         Returns the binary code of the comp mnemonic.
         """
-        # Defines if it's 'A' or 'M' register.
-        a = 0 if 'A' in string else 1
+        # Defines if it's 'A' or 'M' register, in case we use those registers.
+        a = '1' if 'M' in string else '0'
 
         if string is not None:
-            string.replace('M', 'A')
+            string = string.replace('M', 'A')
 
         return a + comp_codes[string]
 

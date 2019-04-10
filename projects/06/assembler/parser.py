@@ -1,15 +1,15 @@
-
+import re
 
 class Parser:
     """
     Encapsulates access to the input code. Reads an assembly
-    language com- mand, parses it, and provides convenient
-    access to the command’s components (fields and symbols).
+    language command, parses it, and provides convenient
+    access to the command's components (fields and symbols).
     In addition, removes all white space and comments.
     """
 
     def __init__(self, filename):
-        self.stream = open(filename, "r")
+        self.stream = open(filename, 'r')
         self.current_command = None
 
     def has_more_commands(self):
@@ -17,7 +17,7 @@ class Parser:
         Return true if there are more commands in the input file.
         """
         pos = self.stream.tell()
-        res = bool(self.stream.readline())
+        res = self.stream.readline() != ''
         self.stream.seek(pos)
         return res
 
@@ -27,11 +27,20 @@ class Parser:
         it the current command.
         """
         line = self.stream.readline()
-        if not line:
-            print("No more commands.")
+        while line is not None:
+            line = line.strip()
+
+            # Avoid comments or empty lines
+            if line[:2] != '//' and line != '':
+                break
+
+            line = self.stream.readline()
+
+        if line is None:
+            print "No more commands."
             return
 
-        self.current_command = line.strip()
+        self.current_command = line
 
     def command_type(self):
         """
@@ -42,7 +51,7 @@ class Parser:
             return 'A_COMMAND'
         if '=' in cmnd or ';' in cmnd:
             return 'C_COMMAND'
-        if (re.search(r"^\(.+\)$", cmnd) is not None:
+        if re.search(r"^\(.+\)$", cmnd) is not None:
             return 'L_COMMAND'
 
         return 'UNKNOWN_COMMAND'
@@ -54,12 +63,12 @@ class Parser:
         """
         t = self.command_type()
         if t != 'A_COMMAND' and t != 'L_COMMAND':
-            print('Cannot resolve symbol for not a A_COMMAND or C_COMMAND')
+            print "Cannot resolve symbol for not a A_COMMAND or L_COMMAND'"
             return
 
         if t == 'A_COMMAND':
             return self.current_command[1:]
-        if t == 'C_COMMAND':
+        if t == 'L_COMMAND':
             return self.current_command[1:-1]
 
     def dest(self):
@@ -68,7 +77,7 @@ class Parser:
         """
         t = self.command_type()
         if t != 'C_COMMAND':
-            print("Cannot resolve dest for a %s" % t)
+            print "Cannot resolve dest for a %s" % t
             return
 
         if '=' not in self.current_command:
@@ -83,10 +92,16 @@ class Parser:
         """
         t = self.command_type()
         if t != 'C_COMMAND':
-            print("Cannot resolve comp for a %s" % t)
+            print "Cannot resolve comp for a %s" % t
             return
 
-        return re.search(r"={0,1}([^;=]+);{0,1}", self.current_command).group(1)
+        # return re.search(r"={0,1}([^;=]+);{0,1}", self.current_command).group(1)
+
+        if '=' in self.current_command:
+            return self.current_command.split('=')[1]
+
+        return self.current_command.split(';')[0]
+
 
     def jump(self):
         """
@@ -94,7 +109,7 @@ class Parser:
         """
         t = self.command_type()
         if t != 'C_COMMAND':
-            print("Cannot resolve comp for a %s" % t)
+            print "Cannot resolve comp for a %s" % t
             return
 
         if ';' not in self.current_command:

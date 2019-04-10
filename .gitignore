@@ -6,3 +6,6 @@
 
 # Ignore binary hack files
 *.hack
+
+# Ignore pyc files
+*.pyc
