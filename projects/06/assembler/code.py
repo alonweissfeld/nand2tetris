@@ -48,11 +48,6 @@ jump_codes = {
 class Code:
     """
     Translates Hack assembly language mnemonics into binary codes.
-
-    note // ASK SHIMON: Why these functions are part of a class?
-            'Code' doesn't refelct any entity that requires multiple
-            instances. It could be used alternaitvley as helper
-            functions as part of this package.
     """
     def __init__(self):
         pass
