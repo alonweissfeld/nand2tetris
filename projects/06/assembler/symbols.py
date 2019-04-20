@@ -2,7 +2,7 @@
 class SymbolTable:
     """
     Keeps a correspondence between symbolic labels and their meaning
-    (in Hack’s case, RAM and ROM addresses).
+    (in Hack's case, RAM and ROM addresses).
     """
     def __init__(self):
         # Pre-defined symbols.

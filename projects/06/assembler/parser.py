@@ -28,10 +28,11 @@ class Parser:
         """
         line = self.stream.readline()
         while line is not None:
-            line = line.strip()
+            # Strip comments or empty spaces
+            line = re.sub('//.*', '', line).strip()
 
             # Avoid comments or empty lines
-            if line[:2] != '//' and line != '':
+            if line != '':
                 break
 
             line = self.stream.readline()
@@ -117,3 +118,9 @@ class Parser:
             return None
 
         return self.current_command.split(';')[1]
+
+    def rollback(self):
+        """
+        Rolls back the file pointer to the start of the file.
+        """
+        self.stream.seek(0)
