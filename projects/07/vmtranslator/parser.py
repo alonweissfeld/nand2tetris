@@ -48,7 +48,7 @@ class Parser:
         """
         Returns a constant representing the type of the current command.
         """
-        t = self.current_command.spli(' ')[0]
+        t = self.current_command.split(' ')[0]
         if t in ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']:
             return 'C_ARITHMETIC'
 
