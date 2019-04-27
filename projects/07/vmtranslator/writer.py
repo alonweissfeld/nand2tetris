@@ -12,19 +12,20 @@ class CodeWriter:
         implements the given arithmetic-logical command.
         """
         lines = None
-        if command == 'add':
+        if command in ['add', 'sub']:
             lines = [
                 # Decreament Mem[SP] by 1 and store in A as well,
-                 # to load the first value into D register.
+                # to load the first value into D register.
                 '@SP',
                 'AM=M-1',
                 'D=M',
 
-                # Similiary, pop the second value and sum it with D's value.
+                # Similiary, pop the second value and sum or difference
+                # it with D's value, according to the commad.
                 # Save the result in Mem[(2nd value index)]
                 '@SP',
                 'AM=M-1',
-                'M=D+M',
+                'M=' + ('D+M' if command == 'add' else 'M-D'),
 
                 # Increment SP index by 1. The next item that will be
                 # pushed into the Stack, will override the first original
@@ -32,6 +33,38 @@ class CodeWriter:
                 '@SP',
                 'M=M+1'
             ]
+        elif command == "neg":
+            lines = [
+                # Negate topmost stack value (without poping it)
+                '@SP',
+                'A=M-1'
+                'M=-M'
+            ]
+        elif command == "not":
+            lines = [
+                '@SP',
+                'A=M-1'
+                'M=!M'
+            ]
+        elif command == "or":
+            [
+                '@SP',
+                'AM=M-1',
+                'D=M',
+                '@SP',
+                'A=M-1',
+                'M=D|M' # Store OR result in topmost value
+            ]
+        elif command == 'and':
+            lines = [
+                '@SP',
+                'AM=M-1',
+                'D=M',
+                '@SP',
+                'A=M-1',
+                'M=D&M' # Store AND result in topmost value
+            ]
+
 
         self.write_lines(lines)
 
