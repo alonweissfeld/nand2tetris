@@ -48,18 +48,34 @@ class Parser:
         """
         Returns a constant representing the type of the current command.
         """
-        cmnd = self.current_command
-        // # TODO: Implement.
+        t = self.current_command.spli(' ')[0]
+        if t in ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']:
+            return 'C_ARITHMETIC'
 
+        if t == 'push':
+            return 'C_PUSH'
 
+        if t == 'pop':
+            return 'C_POP'
 
-        #
-        # if cmnd[0] == '@':
-        #     return 'A_COMMAND'
-        # if '=' in cmnd or ';' in cmnd:
-        #     return 'C_COMMAND'
-        # if re.search(r"^\(.+\)$", cmnd) is not None:
-        #     return 'L_COMMAND'
+        # The following are pre-implementation of project 8.
+        if t == 'label':
+            return 'C_LABEL'
+
+        if t == 'goto':
+            return 'C_GOTO'
+
+        if t == 'if-goto':
+            return 'C_IF'
+
+        if t == 'function':
+            return 'C_FUNCTION'
+
+        if t == 'return':
+            return 'C_RETURN'
+
+        if t == 'call':
+            return 'C_CALL'
 
         return 'UNKNOWN_COMMAND'
 
@@ -71,9 +87,14 @@ class Parser:
         if t == 'C_RETURN':
             return
 
+        args = self.current_command.split(' ')
+
         if t == 'C_ARITHMETIC':
             # Return the command itself.
-            return self.current_command.split(' ')[0]
+            return args[0]
+
+        return args[1]
+
 
     def arg2(self):
         """
