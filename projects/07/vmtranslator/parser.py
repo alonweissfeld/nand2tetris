@@ -1,5 +1,18 @@
 import re
 
+# Defines the constant names used when resolving the commands type.
+commands = {
+    'arithmetic': ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not'],
+    'push': 'C_PUSH',
+    'pop': 'C_POP',
+    'label': 'C_LABEL',
+    'goto': 'C_GOTO',
+    'if-goto': 'C_IF',
+    'function': 'C_FUNCTION',
+    'call': 'C_CALL',
+    'return': 'C_RETURN'
+}
+
 class Parser:
     """
     This module handles the parsing of a single .vm file.
@@ -49,35 +62,13 @@ class Parser:
         Returns a constant representing the type of the current command.
         """
         t = self.current_command.split(' ')[0]
-        if t in ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']:
+        if t in commands.get('arithmetic'):
             return 'C_ARITHMETIC'
 
-        if t == 'push':
-            return 'C_PUSH'
+        if t not in commands:
+            raise ValueError('{} is an invalid command type.'.format(t))
 
-        if t == 'pop':
-            return 'C_POP'
-
-        # The following are pre-implementation of project 8.
-        if t == 'label':
-            return 'C_LABEL'
-
-        if t == 'goto':
-            return 'C_GOTO'
-
-        if t == 'if-goto':
-            return 'C_IF'
-
-        if t == 'function':
-            return 'C_FUNCTION'
-
-        if t == 'return':
-            return 'C_RETURN'
-
-        if t == 'call':
-            return 'C_CALL'
-
-        return 'UNKNOWN_COMMAND'
+        return commands.get(t)
 
     def arg1(self):
         """
