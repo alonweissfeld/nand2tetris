@@ -102,3 +102,9 @@ class Parser:
         Rolls back the file pointer to the start of the file.
         """
         self.stream.seek(0)
+
+    def close(self):
+        """
+        Closes the read stream.
+        """
+        self.stream.close()

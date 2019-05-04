@@ -5,9 +5,12 @@ class CodeWriter:
     This module translates a parsed VM command into Hack assembly code.
     """
     def __init__(self, filename):
+        # Determines the main stream assembly file to write to.
         filename = re.sub('.vm$', '', filename)
         self.stream = open(filename + '.asm', 'w')
-        self.clean_filename = filename.split('/')[-1]
+
+        # Determines the current vm file (without full path) being translated.
+        self.current_vmfile = None
 
         # Defines our VM memory segments. Each segment offers direct
         # access to its base values using it's name, which will be
@@ -26,6 +29,63 @@ class CodeWriter:
         # Determines the label index of a new encountered boolean operation,
         # and therefore counts the amount of boolean operations so far.
         self.boolean_idx = 0
+
+    def sef_file_name(self, filename):
+        """
+        Informs that the translation of a new VM file has started.
+        """
+        name = filename.replace('.vm', '').split('/')[-1]
+        line = '// Translation begins for file: {}'.format(name)
+
+        self.current_vmfile = name
+        self.write_lines(line)
+
+    def write_init(self):
+        """
+        Writes the assembly instructions that effect the bootstrap code
+        that starts the program's execution. This code is placed
+        at the beginning of the generated .asm file.
+        """
+        pass
+
+    def write_label(self, label):
+        """
+        Writes assembly code that effects the label command.
+        """
+        if not label:
+            raise ValueError('No label specified.')
+
+        line = '({0}${1})'.format(self.current_vmfile, label)
+        self.write_lines(line)
+
+    def write_goto(self, label):
+        """
+        Writes assembly code that effects the goto command.
+        """
+        if not label:
+            raise ValueError('No label specified.')
+
+        self.write_lines([
+            '@{0}${1}'.format(self.current_vmfile, label),
+            '0;JMP'
+        ])
+
+    def write_if(self, label):
+        """
+        Writes assembly code that effects the if-goto command.
+        """
+        if not label:
+            raise ValueError('No label specified.')
+
+        # Pops topmost value from the stack to D register and
+        # jumps to the specified label if it's true (Not Equal zero)
+        self.write_lines([
+            '@SP',
+            'AM=M-1', # Decreament SP and set A register to that value.
+            'D=M',
+            '@{0}${1}'.format(self.current_vmfile, label),
+            'D;JNE'
+        ])
 
     def write_arithmetic(self, command):
         """
