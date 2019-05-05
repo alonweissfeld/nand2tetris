@@ -30,6 +30,11 @@ class CodeWriter:
         # and therefore counts the amount of boolean operations so far.
         self.boolean_idx = 0
 
+        # Detremines the 'call' commands that occured so far, within
+        # each function. Each function name is uniquely set by
+        # file_name.function.name
+        self.function_calls_count = {}
+
     def sef_file_name(self, filename):
         """
         Informs that the translation of a new VM file has started.
@@ -86,6 +91,110 @@ class CodeWriter:
             '@{0}${1}'.format(self.current_vmfile, label),
             'D;JNE'
         ])
+
+    def write_function(self, function_name, num_vars):
+        """
+        Writes assembly code that effects the function command.
+        Declares a function, informing that the function has
+        num_vars local variables.
+        """
+        # The handling of each "function foo" command within a VM file X
+        # generates and injects into the assembly code stream a symbol X.foo
+        # that labels the entry- point to the function’s code.
+        lines = ['({0}.{1})'.format(self.current_vmfile, function_name)]
+
+        # Initialize local vars to 0
+        for k in range(num_vars):
+            lines += [
+                'D=0',
+                '@SP', # Write data to top of the stack.
+                'A=M',
+                'M=D',
+                '@SP', # Increment SP
+                'M=M+1'
+            ]
+
+        self.write_lines(lines)
+
+    def write_call(self, function_name, num_args):
+        """
+        Writes assembly code that effects the call command.
+        Generates code that saves the frame of the caller on the stack,
+        sets the segment pointers for the called function, and jumps
+        to execute the latter.
+        """
+        # The handling of each call command within foo's code generates and
+        # injects into the assembly code stream a symbol Xxx.foo$ret.i,
+        # where i is a running integer (one such symbol is generated
+        # for each call command within foo).
+
+        name = '{0}.{1}'.format(self.current_vmfile, function_name)
+        if name not in self.function_calls_count:
+            self.function_calls_count[name] = 0
+
+        idx = self.function_calls_count[name]
+        ret_symbol = '@{0}$ret.{1}'.format(name, idx)
+
+        # Increment call count by 1, for this function.
+        self.function_calls_count[name] += 1
+
+        # Push return-address to stack.
+        lines += [
+            '@' + ret_symbol,
+            'D=A',
+            '@SP', # Write data to top of the stack.
+            'A=M',
+            'M=D',
+            '@SP', # Increment SP
+            'M=M+1'
+        ]
+
+        # Save LCL, ARG, THIS and THAT of the caller
+        for addr in ['LCL', 'ARG', 'THIS', 'THAT']:
+            lines += [
+                '@' + addr,
+                'D=M',
+                '@SP',
+                'A=M',
+                'M=D',
+                '@SP',
+                'M=M+1'
+            ]
+
+        # Reposition ARG (= SP-n- 5)
+        lines += [
+            '@SP',
+            'D=M',
+            '@{}'.format(num_args + 5),
+            'D=D-A',
+            '@ARG',
+            'M=D'
+        ]
+
+        # Reposition LCL = SP
+        lines += [
+            '@SP',
+            'D=M',
+            '@LCL',
+            'M=D'
+        ]
+
+        # Transfers control to the called function - goto function.
+        lines += [
+            '@' + name,
+            '0;JMP'
+        ]
+
+        # Injects the return-address label into the code
+        lines.append('({})'.format(ret_symbol))
+
+        self.write_lines(lines)
+
+    def write_return(self):
+        """
+        Writes assembly code that effects the return command.
+        """
+        pass
 
     def write_arithmetic(self, command):
         """
