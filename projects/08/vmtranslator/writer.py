@@ -95,12 +95,12 @@ class CodeWriter:
     def write_function(self, function_name, num_vars):
         """
         Writes assembly code that effects the function command.
-        Declares a function, informing that the function has
-        num_vars local variables.
+        Generates code that declares a function and initializes
+        the local variables of the called function.
         """
         # The handling of each "function foo" command within a VM file X
         # generates and injects into the assembly code stream a symbol X.foo
-        # that labels the entry- point to the function’s code.
+        # that labels the entry- point to the function's code.
         lines = ['({0}.{1})'.format(self.current_vmfile, function_name)]
 
         # Initialize local vars to 0
@@ -193,8 +193,75 @@ class CodeWriter:
     def write_return(self):
         """
         Writes assembly code that effects the return command.
+        Generates code that copies the return value to the top of the
+        caller's working stack, reinstates the segment pointers of the caller,
+        and jumps to execute the latter, from the return address onward.
         """
-        pass
+        # Defines the temporary variables
+        frame = 'R13'
+        ret = 'R14'
+
+        # frame = LCL
+        lines = [
+            '@LCL',
+            'D=M',
+            '@' + frame,
+            'M=D'
+        ]
+
+        # Puts the return address in a temp variable (=frame-5)
+        lines += [
+            '@' + frame,
+            'D=M',
+            '@5',
+            'AD=D-A', # Calc address.
+            'D=M', # Store address value.
+            '@' + ret,
+            'M=D' # Save value in temporary return.
+        ]
+
+        # Repositions the return value for the caller (ARG = pop())
+        lines += [
+            '@SP',
+            'AM=M-1',
+            'D=M',
+            '@ARG',
+            'A=M',
+            'D=M'
+        ]
+
+        # Repositions the caller's SP (SP = ARG+1)
+        lines += [
+            '@ARG',
+            'D=M+1',
+            '@SP',
+            'M=D'
+        ]
+
+        # Restores the caller's THAT, THIS, ARG, LCL:
+        # THAT = *(FRAME-1)
+        # THIS = *(FRAME-2)
+        # ARG = *(FRAME-3)
+        # LCL = *(FRAME-4)
+        for idx, addr in enumerate(['THAT', 'THIS', 'ARG', 'LCL']):
+            lines += [
+                '@' + frame,
+                'D=M',
+                '@' + str(idx + 1),
+                'AD=D-A',
+                'D=M', # Store address value.
+                '@' + addr,
+                'M=D' # Save value.
+            ]
+
+        # goto return address (in the caller's code).
+        lines += [
+            '@' + ret,
+            'A=M',
+            '0;JMP'
+        ]
+
+        self.write_lines(lines) # We're done.
 
     def write_arithmetic(self, command):
         """

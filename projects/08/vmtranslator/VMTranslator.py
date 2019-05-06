@@ -64,24 +64,36 @@ def translate(writer, filename):
         # Write the current vm command as a comment before any assembly code.
         writer.write_lines('// ' + parser.current_command)
 
-        if command_type in ['C_PUSH', 'C_POP']:
-            segment = parser.arg1()
-            index = parser.arg2()
-            writer.write_push_pop(command_type, segment, index)
-
-        if command_type == 'C_ARITHMETIC':
-            operation = parser.arg1()
-            writer.write_arithmetic(operation)
-
         arg1 = parser.arg1()
-        if command_type == 'C_LABEL':
-            writer.write_label(arg1)
+        arg2 = parser.arg2()
 
-        if command_type == 'C_GOTO':
-            writer.write_goto(arg1)
+        # Defines the proper routine to call upon the given command
+        routines = {
+            'C_POP': writer.write_push_pop,
+            'C_PUSH': writer.write_push_pop,
+            'C_ARITHMETIC': writer.write_arithmetic,
+            'C_LABEL': writer.write_label,
+            'C_GOTO': writer.write_goto,
+            'C_IF': writer.write_if,
+            'C_FUNCTION': writer.write_function,
+            'C_CALL': writer.write_call,
+            'C_RETURN': writer.write_return
+        }
 
-        if command_type == 'C_IF':
-            writer.write_if(arg1)
+        routine = routines[command_type]
+
+        if command_type in ['C_PUSH', 'C_POP']:
+            arg0 = command_type
+            routine(arg0, arg1, arg2)
+        elif arg1 and arg2:
+            # C_FUNCTION, C_CALL
+            routine(arg1, arg2)
+        elif arg1:
+            # C_ARITHMETIC, C_LABEL, C_GOTO, C_IF
+            routine(arg1)
+        else:
+            # C_RETURN
+            routine()
 
     parser.close() # We're done reading from file.
 

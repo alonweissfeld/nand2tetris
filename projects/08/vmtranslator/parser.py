@@ -76,7 +76,7 @@ class Parser:
         """
         t = self.command_type()
         if t == 'C_RETURN':
-            return
+            return None
 
         args = self.current_command.split(' ')
 
@@ -93,7 +93,7 @@ class Parser:
         """
         t = self.command_type()
         if t not in ['C_PUSH', 'C_POP', 'C_FUNCTION', 'C_CALL']:
-            return
+            return None
 
         return int(self.current_command.split(' ')[2])
 
