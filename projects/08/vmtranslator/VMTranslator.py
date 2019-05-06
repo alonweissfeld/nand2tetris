@@ -7,15 +7,18 @@ from parser import Parser
 from writer import CodeWriter
 
 def main():
-    if len(sys.argv) < 2:
-        raise Exception("Usage: python VMTranslator.py filename/dirname")
-
+    path = None
     files = None
-    path = sys.argv[1]
 
-    # TODO: If no path is specified, the VM translator operates
-    # on the current directory by default.
-
+    # If no path is specified, the VM translator operates on the
+    # current directory by default.
+    if len(sys.argv) == 1:
+        path = os.getcwd()
+    elif len(sys.argv) == 2:
+        path = sys.argv[1]
+    else:
+        raise Exception("Usage: python VMTranslator.py filename/dirname " +
+            "(empty path for current dir)")
 
     # Given path is either a single VM file, or a directory of VM files.
     is_single_file = re.search('.vm$', path)
