@@ -96,10 +96,8 @@ class CodeWriter:
 
         # Pops topmost value from the stack to D register and
         # jumps to the specified label if it's true (Not Equal zero)
+        self._pop_to_D()
         self.write_lines([
-            '@SP',
-            'AM=M-1', # Decreament SP and set A register to that value.
-            'D=M',
             '@{0}${1}'.format(self.current_vmfile, label),
             'D;JNE'
         ])
@@ -117,16 +115,7 @@ class CodeWriter:
 
         # Initialize local vars to 0
         for k in range(num_vars):
-            lines += [
-                'D=0',
-                '@SP', # Write data to top of the stack.
-                'A=M',
-                'M=D',
-                '@SP', # Increment SP
-                'M=M+1'
-            ]
-
-        self.write_lines(lines)
+            self._push_from_D('D=0')
 
     def write_call(self, function_name, num_args):
         """
@@ -152,29 +141,13 @@ class CodeWriter:
         self.function_calls_count[function_name] += 1
 
         # Push return-address to stack.
-        lines = [
-            '@' + ret_symbol,
-            'D=A',
-            '@SP', # Write data to top of the stack.
-            'A=M',
-            'M=D',
-            '@SP', # Increment SP
-            'M=M+1'
-        ]
+        self._push_from_D('@' + ret_symbol, 'D=A')
 
         # Save LCL, ARG, THIS and THAT of the caller
         for addr in ['LCL', 'ARG', 'THIS', 'THAT']:
-            lines += [
-                '@' + addr,
-                'D=M',
-                '@SP',
-                'A=M',
-                'M=D',
-                '@SP',
-                'M=M+1'
-            ]
+            self._push_from_D('@' + addr, 'D=M')
 
-        lines += [
+        lines = [
             # Reposition ARG (= SP-n-5)
             '@SP',
             'D=M',
@@ -271,18 +244,11 @@ class CodeWriter:
         Writes to the output file the assembly code that
         implements the given arithmetic-logical command.
         """
-        lines = []
         if command not in ['neg', 'not']:
-            # Decreament Mem[SP] by 1 and store address in A,
-            # to load the first value into D register.
-            lines += [
-                '@SP',
-                'AM=M-1',
-                'D=M'
-            ]
+            self._pop_to_D()
 
         # Decreament Mem[SP] by 1 and store address in A
-        lines += [
+        lines = [
             '@SP',
             'AM=M-1'
         ]
@@ -361,46 +327,31 @@ class CodeWriter:
         implements the given push or pop command.
         """
         # Calculate relevant address and resolve it to A register.
-        lines = []
-        lines.append(self.calc_addr(segment, idx))
+        self.write_lines(self.calc_addr(segment, idx))
 
         if command_type == 'C_PUSH':
             # Pushes value of segment[idx] to stack
-            lines += [
-                'D=A' if segment == 'constant' else 'D=M',
-
-                # Get the current Stack pointer and set address to it's value.
-                '@SP',
-                'A=M',
-
-                # Write data to the top of the stack and increment SP.
-                'M=D',
-                '@SP',
-                'M=M+1'
-            ]
+            prefix = 'D=A' if segment == 'constant' else 'D=M'
+            self._push_from_D(prefix)
 
         elif command_type == 'C_POP':
-            # Pops the stack value and stores it in segment[idx]
-
-            lines += [
-                # Store resolved address in R13
+            # Pops the stack value and stores it in segment[idx].
+            # First, store resolved address in R13
+            self.write_lines([
                 'D=A',
                 '@R13',
                 'M=D',
+            ])
 
-                 # Decrement SP, and pop topmost value from stack onto D
-                 '@SP',
-                 'AM=M-1',
-                 'D=M',
+            self._pop_to_D()
 
-                 # Get back the address from R13, and save the popped value
-                 # in the relevant RAM[addr]
-                 '@R13',
-                 'A=M',
-                 'M=D'
-            ]
-
-        self.write_lines(lines)
+            # Get back the address from R13, and save the popped value
+            # in the relevant RAM[addr]
+            self.write_lines([
+                '@R13',
+                'A=M',
+                'M=D'
+            ])
 
     def calc_addr(self, segment, idx):
         """
@@ -432,6 +383,36 @@ class CodeWriter:
             raise ValueError('{} is an invalid segment'.format(segment))
 
         return result
+
+    def _pop_to_D(self):
+        """
+        Helper method to pop the topmost value from the stack onto D register.
+        """
+        # SP points to the address of right after the topmost value.
+        # First, decrement it and then load to D.
+        self.write_lines([
+            '@SP',
+            'AM=M-1',
+            'D=M'
+        ])
+
+    def _push_from_D(self, *args):
+        """
+        Helper method to push the value in D register ontop of stack.
+        """
+        # Defines any prefixed commands, usually, setting the D register value.
+        prefix = [arg for arg in args]
+
+        # Get the current Stack pointer and set address to it's value.
+        # Then, write data to the top of the stack.
+        # Finally, increment SP to point at the next available address.
+        self.write_lines(prefix + [
+            '@SP',
+            'A=M',
+            'M=D',
+            '@SP',
+            'M=M+1'
+        ])
 
     def write_lines(self, lines):
         """
