@@ -23,6 +23,10 @@ def main():
         raise Exception("Given path is not a directory or valid vm file.")
 
     if not is_single_file:
+        # Clean dir_name path, if it ends with a slash.
+        if path.endswith('/'):
+            path = path[:-1]
+
         # When invoked with dir_name, create a single output file named
         # dir_name.asm, which is stored in the same directory.
         files = glob.glob(os.path.join(path, '*.vm'))
@@ -33,7 +37,10 @@ def main():
 
     try:
         writer = CodeWriter(path)
-        writer.write_init()
+
+        # Only inject bootstrap code when dealing with directories.
+        if not is_single_file:
+            writer.write_init()
 
         for file in files:
             writer.sef_file_name(file)
@@ -83,18 +90,18 @@ def translate(writer, filename):
         routine = routines[command_type]
 
         if command_type in ['C_PUSH', 'C_POP']:
-            arg0 = command_type
-            routine(arg0, arg1, arg2)
-        elif arg1 and arg2:
-            # C_FUNCTION, C_CALL
+            routine(command_type, arg1, arg2)
+
+        # Comparing to None explicitly since an argument may be zero.
+        elif arg1 is not None and arg2 is not None:
+             # C_FUNCTION, C_CALL
             routine(arg1, arg2)
-        elif arg1:
+        elif arg1 is not None:
             # C_ARITHMETIC, C_LABEL, C_GOTO, C_IF
             routine(arg1)
         else:
             # C_RETURN
             routine()
-
     parser.close() # We're done reading from file.
 
 

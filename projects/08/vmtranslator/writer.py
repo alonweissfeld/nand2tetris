@@ -51,7 +51,19 @@ class CodeWriter:
         that starts the program's execution. This code is placed
         at the beginning of the generated .asm file.
         """
-        pass
+        # The standard VM mapping on the Hack platform stipulates that
+        # the stack be mapped on the host RAM from address 256 onward
+        self.write_lines([
+            '@256',
+            'D=A',
+            '@SP',
+            'M=D'
+        ])
+
+        # The first VM function that should start executing is the OS
+        # function Sys.init, which is expected to call the main function
+        # of the application, and enter an infinite loop.
+        self.write_call('Sys.init', 0)
 
     def write_label(self, label):
         """
@@ -101,7 +113,7 @@ class CodeWriter:
         # The handling of each "function foo" command within a VM file X
         # generates and injects into the assembly code stream a symbol X.foo
         # that labels the entry- point to the function's code.
-        lines = ['({0}.{1})'.format(self.current_vmfile, function_name)]
+        lines = ['({})'.format(function_name)]
 
         # Initialize local vars to 0
         for k in range(num_vars):
@@ -128,18 +140,19 @@ class CodeWriter:
         # where i is a running integer (one such symbol is generated
         # for each call command within foo).
 
-        name = '{0}.{1}'.format(self.current_vmfile, function_name)
-        if name not in self.function_calls_count:
-            self.function_calls_count[name] = 0
+        # name = '{0}.{1}'.format(self.current_vmfile, function_name)
+        # The given function name is already in file.function format
+        if function_name not in self.function_calls_count:
+            self.function_calls_count[function_name] = 0
 
-        idx = self.function_calls_count[name]
-        ret_symbol = '@{0}$ret.{1}'.format(name, idx)
+        idx = self.function_calls_count[function_name]
+        ret_symbol = '{0}$ret.{1}'.format(function_name, idx)
 
         # Increment call count by 1, for this function.
-        self.function_calls_count[name] += 1
+        self.function_calls_count[function_name] += 1
 
         # Push return-address to stack.
-        lines += [
+        lines = [
             '@' + ret_symbol,
             'D=A',
             '@SP', # Write data to top of the stack.
@@ -161,32 +174,28 @@ class CodeWriter:
                 'M=M+1'
             ]
 
-        # Reposition ARG (= SP-n- 5)
         lines += [
+            # Reposition ARG (= SP-n-5)
             '@SP',
             'D=M',
             '@{}'.format(num_args + 5),
             'D=D-A',
             '@ARG',
-            'M=D'
-        ]
+            'M=D',
 
-        # Reposition LCL = SP
-        lines += [
+            # Reposition LCL = SP
             '@SP',
             'D=M',
             '@LCL',
-            'M=D'
-        ]
+            'M=D',
 
-        # Transfers control to the called function - goto function.
-        lines += [
-            '@' + name,
-            '0;JMP'
-        ]
+            # Transfers control to the called function - goto function.
+            '@' + function_name,
+            '0;JMP',
 
-        # Injects the return-address label into the code
-        lines.append('({})'.format(ret_symbol))
+            # Injects the return-address label into the code
+            '({})'.format(ret_symbol)
+        ]
 
         self.write_lines(lines)
 
@@ -201,37 +210,31 @@ class CodeWriter:
         frame = 'R13'
         ret = 'R14'
 
-        # frame = LCL
         lines = [
+            # frame = LCL
             '@LCL',
             'D=M',
             '@' + frame,
-            'M=D'
-        ]
+            'M=D',
 
-        # Puts the return address in a temp variable (=frame-5)
-        lines += [
+            # Puts the return address in a temp variable (=frame-5)
             '@' + frame,
             'D=M',
             '@5',
             'AD=D-A', # Calc address.
             'D=M', # Store address value.
             '@' + ret,
-            'M=D' # Save value in temporary return.
-        ]
+            'M=D', # Save value in temporary return.
 
-        # Repositions the return value for the caller (ARG = pop())
-        lines += [
+            # Repositions the return value for the caller (ARG = pop())
             '@SP',
             'AM=M-1',
             'D=M',
             '@ARG',
             'A=M',
-            'D=M'
-        ]
+            'M=D',
 
-        # Repositions the caller's SP (SP = ARG+1)
-        lines += [
+            # Repositions the caller's SP (SP = ARG+1)
             '@ARG',
             'D=M+1',
             '@SP',
@@ -409,7 +412,7 @@ class CodeWriter:
         if segment == 'constant':
             result = '@' + str(idx)
         elif segment == 'static':
-            result = '@' + self.clean_filename + '.' + str(idx)
+            result = '@' + self.current_vmfile + '.' + str(idx)
         elif segment in ['pointer', 'temp']:
             # The pointer and temp segments base values are used as the
             # initial data holders themselves. Therefore, the address
