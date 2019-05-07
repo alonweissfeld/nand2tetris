@@ -111,7 +111,7 @@ class CodeWriter:
         # The handling of each "function foo" command within a VM file X
         # generates and injects into the assembly code stream a symbol X.foo
         # that labels the entry- point to the function's code.
-        lines = ['({})'.format(function_name)]
+        self.write_lines('({})'.format(function_name))
 
         # Initialize local vars to 0
         for k in range(num_vars):
