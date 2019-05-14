@@ -1,0 +1,15 @@
+/**
+ * Initializes a new GuessMaster game and start running it.
+ */
+class Main {
+
+    function void main() {
+        var DirectionGame game;
+        let game = DirectionGame.new();
+
+        do game.run();
+        do game.dispose();
+
+        return;
+    }
+}

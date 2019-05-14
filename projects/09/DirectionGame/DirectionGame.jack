@@ -1,0 +1,69 @@
+class DirectionGame {
+    // Determines the square and it's direction for this game.
+    field Square square;
+    field int squareDir;
+
+    // Determines the text of this game.
+    field Text text;
+
+    // Determines the user collected score.
+    field int score;
+
+    /** Initializes a new Direction Game. */
+    constructor DirectionGame new() {
+        // Creates a 30x30 square and position it in the
+        // bottom-center of the screen.
+        let square = Square.new(128, 496);
+
+        let squareDir = 0;
+        return this;
+    }
+
+    /** Disposes this game. */
+    method void dispose() {
+        do square.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    /** Invokes graphical interfaces. */
+    method void startGraphics() {
+        
+    }
+
+    /** Run game. */
+    method void run() {
+        var char key;
+        var boolean exit;
+
+        let exit = false;
+        while (~exit) {
+            // Waits for a key to be pressed.
+            while (key = 0) {
+                // keyPressed returns the character of the currently pressed
+                // key on the keyboard. If no key is currently
+                // pressed, returns 0
+                let key = Keyboard.keyPressed();
+
+                // Invoke any graphical interfaces.
+                do startGraphics();
+            }
+
+            if (key = 81)  { let exit = true; }     // q key
+            if (key = 90)  { do square.decSize(); } // z key
+            if (key = 88)  { do square.incSize(); } // x key
+            if (key = 131) { let direction = 1; }   // up arrow
+            if (key = 133) { let direction = 2; }   // down arrow
+            if (key = 130) { let direction = 3; }   // left arrow
+            if (key = 132) { let direction = 4; }   // right arrow
+
+            // Waits for a key to be released.
+            while (~(key = 0)) {
+                let key = Keyboard.keyPressed();
+                do startGraphics();
+            }
+        }
+
+        return;
+    }
+}

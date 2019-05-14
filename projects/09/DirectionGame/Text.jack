@@ -1,0 +1,6 @@
+class Text {
+    /** Initializes a new Text object. */
+    constructor Text new() {
+        
+    }
+}
