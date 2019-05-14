@@ -1,6 +1,5 @@
 class Text {
-    /** Initializes a new Text object. */
-    constructor Text new() {
-        
+    function void display(String text) {
+        do Output.println(text);
     }
 }
