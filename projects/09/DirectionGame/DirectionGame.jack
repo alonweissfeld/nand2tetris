@@ -13,13 +13,13 @@ class DirectionGame {
     field Array pairs;
 
     // Determines the current level being played.
-    field currentLvl;
+    field int currentLvl;
 
     /** Initializes a new Direction Game. */
     constructor DirectionGame new() {
-        // Creates a 30x30 square and position it in the
+        // Creates a 50x50 square and position it in the
         // bottom-center of the screen.
-        let square = Square.new(128, 496);
+        let square = Square.new(128, 496, 50);
 
         // Initial the direction and current level/round played.
         let squareDir = 0;
@@ -64,20 +64,20 @@ class DirectionGame {
 
         // Delays the next movement
         do Sys.wait(5);
-
         return;
     }
 
     /** Moves the square in the given direction, */
-    method moveSquare(int dir) {
+    method void moveSquare(int dir) {
         if (dir = 1) { do square.moveUp(); }
         if (dir = 2) { do square.moveRight(); }
         if (dir = 3) { do square.moveDown(); }
         if (dir = 4) { do square.moveLeft(); }
+        return;
     }
 
     /** Checks the user input against the current text displayed. */
-    method void checkUserInput(char k) {
+    method void checkUserInput(char key) {
         var Pair current;
         var String txt;
 
@@ -115,7 +115,7 @@ class DirectionGame {
             // Check the user input. If the key which is pressed
             // equals to the text of the current round, increase
             // the score. Either way, advance to the next round.
-            do checkUserInput();
+            do checkUserInput(key);
             let currentLvl = currentLvl + 1;
 
             // Waits for a key to be released.
