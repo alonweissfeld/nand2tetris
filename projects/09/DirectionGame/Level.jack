@@ -1,0 +1,30 @@
+/**
+ * Determines a DirectionGame level (single round in the game).
+ * A Level has the direction as seen by the square, a text which represent
+ * the actual direction in which the user needs to select and a delay integer
+ * representing how much fast the square should move.
+ */
+class Level {
+    // Determines the direction to be used by the graphical element
+    // (in our case, the square).
+    field int direction;
+
+    // Determines the delay integer representing how much fast the square moves.
+    field int delay;
+
+    // Determines the text for the round.
+    field String text;
+
+    /** Initializes a new Level object. */
+    constructor Level new(int dir, int del, String txt) {
+        let direction = dir;
+        let delay = del;
+        let text = txt;
+        return this;
+    }
+
+    /** Accessors. */
+    method int getDirection() { return direction; }
+    method int getDelay() { return delay; }
+    method String getText() { return text; }
+}

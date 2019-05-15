@@ -6,13 +6,15 @@ class DirectionGame {
     // Determines the user collected score.
     field int score;
 
-    // Determines the pairs array. Each pair is a level/round in
-    // the game, and represent a structure of of the text shown
-    // and the direction in which the square moves.
-    field Array pairs;
+    // Determines the levels array. Each level represents the current
+    // round in the game, and is structured from the direction in which
+    // the square moves, a delay that determines the speed of
+    // it's movement and the text shown - which is the actual answer.
+    field Array levels;
 
     // Determines the current level being played.
-    field int currentLvl;
+    field Level currentLevel;
+    field int currentLevelIdx;
 
     /** Initializes a new Direction Game. */
     constructor DirectionGame new() {
@@ -20,27 +22,29 @@ class DirectionGame {
         // bottom-center of the screen.
         let square = Square.new(216, 186, 40, this);
 
-        // Initial the current level/round played.
-        let currentLvl = 0;
-
         // Set up the levels/rounds of the game.
-        do setUpPairs();
+        do setUpLevels();
 
         return this;
     }
 
-    /** Set up the pairs of the game. */
-    method void setUpPairs() {
-        let pairs = Array.new(10);
+    /** Set up the levels of the game, and initialize the first level. */
+    method void setUpLevels() {
+        let currentLevelIdx = 0;
+        let levels = Array.new(10);
 
         // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
-        let pairs[0] = Pair.new(1, "DOWN");
-        let pairs[1] = Pair.new(2, "LEFT");
-        let pairs[2] = Pair.new(4, "RIGHT");
-        let pairs[3] = Pair.new(3, "UP");
-        let pairs[4] = Pair.new(2, "DOWN");
-        let pairs[5] = Pair.new(1, "RIGHT");
+        // Level constructor receives the direction of the square,
+        // time delay that determines how fast the square is moving
+        // and a text string which is the actual answer.
+        let levels[0] = Level.new(1, 5, "DOWN");
+        let levels[1] = Level.new(2, 5, "LEFT");
+        let levels[2] = Level.new(4, 10, "RIGHT");
+        let levels[3] = Level.new(3, 5, "UP");
+        let levels[4] = Level.new(2, 5, "DOWN");
+        let levels[5] = Level.new(1, 5, "RIGHT");
 
+        let currentLevel = levels[0];
         return;
     }
 
@@ -53,14 +57,11 @@ class DirectionGame {
 
     /** Invokes graphical interfaces. */
     method void startGraphics() {
-        var Pair current;
-        let current = pairs[currentLvl];
-
         // Run the square in the current direction
-        do moveSquare(current.getDirection());
+        do moveSquare(currentLevel.getDirection());
 
         // Display text.
-        // do Text.display(current.getText());
+        // do Text.display(currentLevel.getText());
 
         // Delays the next movement
         do Sys.wait(5);
@@ -75,14 +76,12 @@ class DirectionGame {
 
     /** Advances the game to to the next level/round. */
     method void advanceLevel() {
-        var Pair current;
+        let currentLevelIdx = currentLevelIdx + 1;
+        let currentLevel = levels[currentLevelIdx];
 
-        // Reposition the square and increase level number.
-        let currentLvl = currentLvl + 1;
-        let current = pairs[currentLvl];
-
+        // Reposition the square
         do Screen.clearScreen();
-        do repositionSquare(current.getDirection());
+        do repositionSquare(currentLevel.getDirection());
         return;
     }
 
@@ -120,7 +119,6 @@ class DirectionGame {
     /** Run game. */
     method void run() {
         var char key;
-        var Pair currentPair;
         var boolean exit;
 
         let exit = false;
@@ -140,8 +138,7 @@ class DirectionGame {
 
             // Check the user input. If the key which is pressed equals
             // to the text of the current round, increase the score.
-            let currentPair = pairs[currentLvl];
-            do checkUserInput(currentPair.getText(), key);
+            do checkUserInput(currentLevel.getText(), key);
 
             // Since the user have choose it's answer, advance to next round.
             do advanceLevel();
