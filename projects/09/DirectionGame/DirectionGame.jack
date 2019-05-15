@@ -18,9 +18,9 @@ class DirectionGame {
 
     /** Initializes a new Direction Game. */
     constructor DirectionGame new() {
-        // Creates a 40x40 square and position it in the
+        // Creates a 35x35 square and position it in the
         // bottom-center of the screen.
-        let square = Square.new(216, 186, 40, this);
+        let square = Square.new(216, 186, 35, this);
 
         // Set up the levels/rounds of the game.
         do setUpLevels();
@@ -28,9 +28,9 @@ class DirectionGame {
         return this;
     }
 
-    /** Set up the levels of the game, and initialize the first level. */
+    /** Set up the levels of the game. */
     method void setUpLevels() {
-        let currentLevelIdx = 0;
+        let currentLevelIdx = -1;
         let levels = Array.new(10);
 
         // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
@@ -43,8 +43,6 @@ class DirectionGame {
         let levels[3] = Level.new(3, 5, "UP");
         let levels[4] = Level.new(2, 5, "DOWN");
         let levels[5] = Level.new(1, 5, "RIGHT");
-
-        let currentLevel = levels[0];
         return;
     }
 
@@ -60,11 +58,8 @@ class DirectionGame {
         // Run the square in the current direction
         do moveSquare(currentLevel.getDirection());
 
-        // Display text.
-        // do Text.display(currentLevel.getText());
-
         // Delays the next movement
-        do Sys.wait(5);
+        do Sys.wait(currentLevel.getDelay());
         return;
     }
 
@@ -82,6 +77,9 @@ class DirectionGame {
         // Reposition the square
         do Screen.clearScreen();
         do repositionSquare(currentLevel.getDirection());
+
+        // Display new level text.
+        do Text.display(currentLevel.getText());
         return;
     }
 
@@ -109,10 +107,10 @@ class DirectionGame {
      */
     method void repositionSquare(int dir) {
         // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
-        if (dir = 1) { let square = Square.new(216, 186, 40, this); }
-        if (dir = 2) { let square = Square.new(216, 90, 40, this); }
-        if (dir = 3) { let square = Square.new(216, 60, 40, this); }
-        if (dir = 4) { let square = Square.new(216, 90, 40, this); }
+        if (dir = 1) { let square = Square.new(216, 186, 35, this); }
+        if (dir = 2) { let square = Square.new(216, 90, 35, this); }
+        if (dir = 3) { let square = Square.new(216, 60, 35, this); }
+        if (dir = 4) { let square = Square.new(216, 90, 35, this); }
         return;
     }
 
@@ -120,6 +118,9 @@ class DirectionGame {
     method void run() {
         var char key;
         var boolean exit;
+
+        // First level.
+        do advanceLevel();
 
         let exit = false;
         while (~exit) {

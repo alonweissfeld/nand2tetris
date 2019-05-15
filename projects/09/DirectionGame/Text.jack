@@ -1,7 +1,21 @@
 class Text {
+    /**
+     * Outputs a given text to the screen, at the the
+     * current cursor location.
+     */
     function void display(String text) {
+        do Text.drawBox();
+        do Output.moveCursor(4, 31); // Moves cursor to center of screen.
         do Output.printString(text);
-        do Output.println();
+        return;
+    }
+
+    /** Draws a rectangle box in the center of the screen. */
+    function void drawBox() {
+        do Screen.drawLine(156, 30, 356, 30); // upper edge
+        do Screen.drawLine(156, 70, 356, 70); // bottom edge
+        do Screen.drawLine(156, 30, 156, 70); // left edge
+        do Screen.drawLine(356, 30, 356, 70); // right edge
         return;
     }
 }
