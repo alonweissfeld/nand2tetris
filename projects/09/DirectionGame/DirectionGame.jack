@@ -2,7 +2,6 @@ class DirectionGame {
     // Determines the square and it's direction for this game.
     // 0=none, 1=up, 2=right, 3=down, 4=left
     field Square square;
-    field int squareDir;
 
     // Determines the user collected score.
     field int score;
@@ -17,12 +16,11 @@ class DirectionGame {
 
     /** Initializes a new Direction Game. */
     constructor DirectionGame new() {
-        // Creates a 50x50 square and position it in the
+        // Creates a 40x40 square and position it in the
         // bottom-center of the screen.
-        let square = Square.new(128, 496, 50);
+        let square = Square.new(216, 186, 40);
 
-        // Initial the direction and current level/round played.
-        let squareDir = 0;
+        // Initial the current level/round played.
         let currentLvl = 0;
 
         // Set up the levels/rounds of the game.
@@ -33,6 +31,8 @@ class DirectionGame {
 
     /** Set up the pairs of the game. */
     method void setUpPairs() {
+        let pairs = Array.new(10);
+
         // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
         let pairs[0] = Pair.new(1, "DOWN");
         let pairs[1] = Pair.new(2, "LEFT");
@@ -60,7 +60,7 @@ class DirectionGame {
         do moveSquare(current.getDirection());
 
         // Display text.
-        do Text.display(current.getText());
+        // do Text.display(current.getText());
 
         // Delays the next movement
         do Sys.wait(5);
@@ -77,27 +77,36 @@ class DirectionGame {
     }
 
     /** Checks the user input against the current text displayed. */
-    method void checkUserInput(char key) {
-        var Pair current;
-        var String txt;
-
-        let current = pairs[currentLvl];
-        let txt = current.getText();
-
+    method void checkUserInput(String txt, char key) {
         if ((key = 131) & (txt = "UP")) { let score = score + 1; } // up
         if ((key = 132) & (txt = "RIGHT")) { let score = score + 1; } // right
         if ((key = 133) & (txt = "DOWN")) { let score = score + 1; } // down
         if ((key = 130) & (txt = "LEFT")) { let score = score + 1; } // left
+        return;
+    }
 
+    /**
+     * Reposition the square for the next round, according
+     * to the given direction.
+     */
+    method void repositionSquare(int dir) {
+        // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
+        if (dir = 1) { let square = Square.new(216, 186, 40); }
+        if (dir = 2) { let square = Square.new(216, 90, 40); }
+        if (dir = 3) { let square = Square.new(216, 60, 40); }
+        if (dir = 4) { let square = Square.new(216, 90, 40); }
         return;
     }
 
     /** Run game. */
     method void run() {
         var char key;
+        var Pair currentPair;
         var boolean exit;
 
         let exit = false;
+        let currentPair = pairs[currentLvl];
+
         while (~exit) {
             // Waits for a key to be pressed.
             while (key = 0) {
@@ -114,9 +123,16 @@ class DirectionGame {
 
             // Check the user input. If the key which is pressed
             // equals to the text of the current round, increase
-            // the score. Either way, advance to the next round.
-            do checkUserInput(key);
+            // the score.
+            do checkUserInput(currentPair.getText(), key);
+
+            // Advance to next round - reposition the square
+            // and increase level number.
             let currentLvl = currentLvl + 1;
+            let currentPair = pairs[currentLvl];
+
+            do Screen.clearScreen();
+            do repositionSquare(currentPair.getDirection());
 
             // Waits for a key to be released.
             while (~(key = 0)) {

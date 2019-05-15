@@ -1,6 +1,7 @@
 class Text {
     function void display(String text) {
-        do Output.println(text);
+        do Output.printString(text);
+        do Output.println();
         return;
     }
 }
