@@ -18,7 +18,7 @@ class DirectionGame {
     constructor DirectionGame new() {
         // Creates a 40x40 square and position it in the
         // bottom-center of the screen.
-        let square = Square.new(216, 186, 40);
+        let square = Square.new(216, 186, 40, this);
 
         // Initial the current level/round played.
         let currentLvl = 0;
@@ -67,6 +67,25 @@ class DirectionGame {
         return;
     }
 
+    /** Listener for when a square reaches the screen edge. */
+    method void reachedEdge() {
+        do advanceLevel();
+        return;
+    }
+
+    /** Advances the game to to the next level/round. */
+    method void advanceLevel() {
+        var Pair current;
+
+        // Reposition the square and increase level number.
+        let currentLvl = currentLvl + 1;
+        let current = pairs[currentLvl];
+
+        do Screen.clearScreen();
+        do repositionSquare(current.getDirection());
+        return;
+    }
+
     /** Moves the square in the given direction, */
     method void moveSquare(int dir) {
         if (dir = 1) { do square.moveUp(); }
@@ -91,10 +110,10 @@ class DirectionGame {
      */
     method void repositionSquare(int dir) {
         // Remainder: 0=none, 1=up, 2=right, 3=down, 4=left
-        if (dir = 1) { let square = Square.new(216, 186, 40); }
-        if (dir = 2) { let square = Square.new(216, 90, 40); }
-        if (dir = 3) { let square = Square.new(216, 60, 40); }
-        if (dir = 4) { let square = Square.new(216, 90, 40); }
+        if (dir = 1) { let square = Square.new(216, 186, 40, this); }
+        if (dir = 2) { let square = Square.new(216, 90, 40, this); }
+        if (dir = 3) { let square = Square.new(216, 60, 40, this); }
+        if (dir = 4) { let square = Square.new(216, 90, 40, this); }
         return;
     }
 
@@ -105,8 +124,6 @@ class DirectionGame {
         var boolean exit;
 
         let exit = false;
-        let currentPair = pairs[currentLvl];
-
         while (~exit) {
             // Waits for a key to be pressed.
             while (key = 0) {
@@ -121,18 +138,13 @@ class DirectionGame {
 
             if (key = 81)  { let exit = true; }     // q key
 
-            // Check the user input. If the key which is pressed
-            // equals to the text of the current round, increase
-            // the score.
+            // Check the user input. If the key which is pressed equals
+            // to the text of the current round, increase the score.
+            let currentPair = pairs[currentLvl];
             do checkUserInput(currentPair.getText(), key);
 
-            // Advance to next round - reposition the square
-            // and increase level number.
-            let currentLvl = currentLvl + 1;
-            let currentPair = pairs[currentLvl];
-
-            do Screen.clearScreen();
-            do repositionSquare(currentPair.getDirection());
+            // Since the user have choose it's answer, advance to next round.
+            do advanceLevel();
 
             // Waits for a key to be released.
             while (~(key = 0)) {

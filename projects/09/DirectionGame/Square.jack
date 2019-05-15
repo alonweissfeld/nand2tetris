@@ -9,11 +9,15 @@ class Square {
    field int x, y; // screen location of the square's top-left corner
    field int size; // length of this square, in pixels
 
+   // Determines the Direction Game associated with this square.
+   field DirectionGame game;
+
    /** Constructs a new square with a given location and size. */
-   constructor Square new(int Ax, int Ay, int Asize) {
+   constructor Square new(int Ax, int Ay, int Asize, DirectionGame Agame) {
       let x = Ax;
       let y = Ay;
       let size = Asize;
+      let game = Agame;
       do draw();
       return this;
    }
@@ -66,6 +70,8 @@ class Square {
          let y = y - 2;
          do Screen.setColor(true);
          do Screen.drawRectangle(x, y, x + size, y + 1);
+      } else {
+         do game.reachedEdge();
       }
       return;
    }
@@ -78,6 +84,8 @@ class Square {
          let y = y + 2;
          do Screen.setColor(true);
          do Screen.drawRectangle(x, (y + size) - 1, x + size, y + size);
+      } else {
+         do game.reachedEdge();
       }
       return;
    }
@@ -90,6 +98,8 @@ class Square {
          let x = x - 2;
          do Screen.setColor(true);
          do Screen.drawRectangle(x, y, x + 1, y + size);
+      } else {
+         do game.reachedEdge();
       }
       return;
    }
@@ -102,6 +112,8 @@ class Square {
          let x = x + 2;
          do Screen.setColor(true);
          do Screen.drawRectangle((x + size) - 1, y, x + size, y + size);
+      } else {
+         do game.reachedEdge();
       }
       return;
    }
