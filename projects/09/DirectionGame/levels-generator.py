@@ -15,9 +15,9 @@ for i in range(LEVELS_AMOUNT):
     elif i >= 0.4 * LEVELS_AMOUNT and i < 0.6 * LEVELS_AMOUNT:
         delay = random.randint(5, 10)
     elif i >= 0.6 * LEVELS_AMOUNT and i < 0.8 * LEVELS_AMOUNT:
-        delay = random.randint(3, 7)
+        delay = random.randint(4, 7)
     else: # Last levels are a mix of difficulties.
-        delay = random.randint(3, 15)
+        delay = random.randint(4, 15)
 
     # Shuffle directions every 5 iterations for more "randomness".
     if i % 5 == 0:

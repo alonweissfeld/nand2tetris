@@ -27,4 +27,10 @@ class Level {
     method int getDirection() { return direction; }
     method int getDelay() { return delay; }
     method String getText() { return text; }
+
+    /** Disposes this Level. */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
 }

@@ -1,18 +1,9 @@
 class Text {
-    /**
-     * Outputs a given text to the screen, at the the
-     * current cursor location.
-     */
+    /** Outputs a given text to the center of the screen. */
     function void displayLevel(String text) {
         do Text.drawBox();
-        do Text.centerCursor();
+        do Output.moveCursor(4, 30);
         do Output.printString(text);
-        return;
-    }
-
-    /** Moves cursor to center of screen. */
-    function void centerCursor() {
-        do Output.moveCursor(4, 26);
         return;
     }
 
