@@ -28,11 +28,26 @@ class Text {
     /** Prints the score to the screen. */
     function void printScore(int score, int totalAmount) {
         do Text.drawBox();
-        do Output.moveCursor(4, 21);
+        do Output.moveCursor(4, 20);
         do Output.printString("Game ended. Score: ");
         do Output.printInt(score);
         do Output.printString("/");
         do Output.printInt(totalAmount);
+        return;
+    }
+
+    /** Prints the instructions of the game */
+    function void printInstructions() {
+        do Output.moveCursor(4, 10);
+        do Output.printString("Welcome. The following game is a cognition test");
+
+        do Output.moveCursor(8, 10);
+        do Output.printString("Press the appropriate arrow key according to the");
+        do Output.moveCursor(9, 10);
+        do Output.printString("text shown in the box");
+
+        do Output.moveCursor(12, 10);
+        do Output.printString("Press any key to start, and q to quit");
         return;
     }
 
