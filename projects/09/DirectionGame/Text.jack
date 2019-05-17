@@ -38,16 +38,18 @@ class Text {
 
     /** Prints the instructions of the game */
     function void printInstructions() {
-        do Output.moveCursor(4, 10);
-        do Output.printString("Welcome. The following game is a cognition test");
+        do Output.moveCursor(4, 7);
+        do Output.printString("Welcome. The following game is a simple coordination");
+        do Output.moveCursor(5, 7);
+        do Output.printString("game to test your attention.");
 
-        do Output.moveCursor(8, 10);
-        do Output.printString("Press the appropriate arrow key according to the");
-        do Output.moveCursor(9, 10);
-        do Output.printString("text shown in the box");
+        do Output.moveCursor(8, 7);
+        do Output.printString("Press the appropriate arrow key, on the keyboard,");
+        do Output.moveCursor(9, 7);
+        do Output.printString("according to the text shown in the box.");
 
-        do Output.moveCursor(12, 10);
-        do Output.printString("Press any key to start, and q to quit");
+        do Output.moveCursor(12, 7);
+        do Output.printString("Press any key to start, and q to quit.");
         return;
     }
 

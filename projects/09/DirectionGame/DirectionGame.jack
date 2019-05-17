@@ -1,6 +1,14 @@
+/**
+ * The direction game is a simple coordination game in a cognitive context.
+ * It's goal is to test the user attention processing. It will display
+ * a direction to the screen, either "UP", "RIGHT", "DOWN" or "LEFT".
+ * Simultaneously, it will show a moving square in some direction, in order
+ * to confuse and distract his attention to the text.
+ * When done, either by pressing 'q' to quit or finishing all levels/rouns,
+ * it will show the score.
+ */
 class DirectionGame {
-    // Determines the square and it's direction for this game.
-    // 0=none, 1=up, 2=right, 3=down, 4=left
+    // Determines the square of this game.
     field Square square;
 
     // Determines the user collected score.

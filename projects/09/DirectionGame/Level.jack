@@ -1,8 +1,8 @@
 /**
  * Determines a DirectionGame level (single round in the game).
- * A Level has the direction as seen by the square, a text which represent
- * the actual direction in which the user needs to select and a delay integer
- * representing how much fast the square should move.
+ * A Level has the direction that determines the square movement, a delay
+ * integer representing how much fast this square should move and aa text
+ * which represent the actual direction in which the user needs to identify.
  */
 class Level {
     // Determines the direction to be used by the graphical element
