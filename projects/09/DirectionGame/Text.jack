@@ -3,19 +3,57 @@ class Text {
      * Outputs a given text to the screen, at the the
      * current cursor location.
      */
-    function void display(String text) {
+    function void displayLevel(String text) {
         do Text.drawBox();
-        do Output.moveCursor(4, 31); // Moves cursor to center of screen.
+        do Text.centerCursor();
         do Output.printString(text);
+        return;
+    }
+
+    /** Moves cursor to center of screen. */
+    function void centerCursor() {
+        do Output.moveCursor(4, 26);
         return;
     }
 
     /** Draws a rectangle box in the center of the screen. */
     function void drawBox() {
-        do Screen.drawLine(156, 30, 356, 30); // upper edge
-        do Screen.drawLine(156, 70, 356, 70); // bottom edge
-        do Screen.drawLine(156, 30, 156, 70); // left edge
-        do Screen.drawLine(356, 30, 356, 70); // right edge
+        do Screen.drawLine(150, 30, 362, 30); // upper edge
+        do Screen.drawLine(150, 70, 362, 70); // bottom edge
+        do Screen.drawLine(150, 30, 150, 70); // left edge
+        do Screen.drawLine(362, 30, 362, 70); // right edge
         return;
+    }
+
+    /** Prints the score to the screen. */
+    function void printScore(int score, int totalAmount) {
+        do Text.drawBox();
+        do Output.moveCursor(4, 21);
+        do Output.printString("Game ended. Score: ");
+        do Output.printInt(score);
+        do Output.printString("/");
+        do Output.printInt(totalAmount);
+        return;
+    }
+
+    /** Returns true if string a is equal to string b. */
+    function boolean equals(String a, String b) {
+        var int lenA, lenB, idx;
+        let lenA = a.length();
+        let lenB = b.length();
+
+        if (~(lenA = lenB)) {
+            return false;
+        }
+
+        let idx = 0;
+        while (idx < (lenA - 1)) {
+            if (~(a.charAt(idx) = b.charAt(idx))) {
+                return false;
+            }
+            let idx = idx + 1;
+        }
+
+        return true;
     }
 }
