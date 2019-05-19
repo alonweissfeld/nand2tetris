@@ -1,0 +1,67 @@
+class Text {
+    /** Outputs a given text to the center of the screen. */
+    function void displayLevel(String text) {
+        do Text.drawBox();
+        do Output.moveCursor(4, 30);
+        do Output.printString(text);
+        return;
+    }
+
+    /** Draws a rectangle box in the center of the screen. */
+    function void drawBox() {
+        do Screen.drawLine(150, 30, 362, 30); // upper edge
+        do Screen.drawLine(150, 70, 362, 70); // bottom edge
+        do Screen.drawLine(150, 30, 150, 70); // left edge
+        do Screen.drawLine(362, 30, 362, 70); // right edge
+        return;
+    }
+
+    /** Prints the score to the screen. */
+    function void printScore(int score, int totalAmount) {
+        do Text.drawBox();
+        do Output.moveCursor(4, 20);
+        do Output.printString("Game ended. Score: ");
+        do Output.printInt(score);
+        do Output.printString("/");
+        do Output.printInt(totalAmount);
+        return;
+    }
+
+    /** Prints the instructions of the game */
+    function void printInstructions() {
+        do Output.moveCursor(4, 7);
+        do Output.printString("Welcome. The following game is a simple coordination");
+        do Output.moveCursor(5, 7);
+        do Output.printString("game to test your attention.");
+
+        do Output.moveCursor(8, 7);
+        do Output.printString("Press the appropriate arrow key, on the keyboard,");
+        do Output.moveCursor(9, 7);
+        do Output.printString("according to the text shown in the box.");
+
+        do Output.moveCursor(12, 7);
+        do Output.printString("Press any key to start, and q to quit.");
+        return;
+    }
+
+    /** Returns true if string a is equal to string b. */
+    function boolean equals(String a, String b) {
+        var int lenA, lenB, idx;
+        let lenA = a.length();
+        let lenB = b.length();
+
+        if (~(lenA = lenB)) {
+            return false;
+        }
+
+        let idx = 0;
+        while (idx < (lenA - 1)) {
+            if (~(a.charAt(idx) = b.charAt(idx))) {
+                return false;
+            }
+            let idx = idx + 1;
+        }
+
+        return true;
+    }
+}

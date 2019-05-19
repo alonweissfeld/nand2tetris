@@ -12,3 +12,6 @@
 
 # Ignore pyc files
 *.pyc
+
+# Specific vm files within project 9
+projects/09/**/*.vm
