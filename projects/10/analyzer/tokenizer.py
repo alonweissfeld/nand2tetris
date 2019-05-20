@@ -120,3 +120,50 @@ class JackTokenizer:
             return 'INT_CONST'
         except ValueError:
             return 'IDENTIFIER'
+
+    def keyword(self):
+        """
+        Returns the keyword which is the current token, as a constant.
+        """
+        if self.token_type() != 'KEYWORD':
+            raise TypeError('Current type is not a keyword.')
+
+        return self.keywords[self.current_token]
+
+    def symbol(self):
+        """
+        Returns the character which is the current symbol token.
+        """
+        if self.token_type() != 'SYMBOL':
+            raise TypeError('Current type is not a symbol.')
+
+        return self.current_token
+
+    def identifier(self):
+        """
+        Returns the string which is the current identifier token.
+        """
+        if self.token_type() != 'IDENTIFIER':
+            raise TypeError('Current token is not an identifier.')
+
+        return self.curr_token
+
+    def int_val(self):
+        """
+        Returns the integer value of the current token.
+        """
+        if self.token_type() != 'INT_CONST':
+            raise TypeError('Current token is not an integer.')
+
+        return int(self.current_token)
+
+    def string_val(self):
+        """
+        Returns the string value of the current token, without the
+        opening and closing double quotes.
+        """
+        if self.token_type() != 'STRING_CONST':
+            raise TypeError('Current token is not a string.')
+
+        return self.current_token[1:-1]
+        
