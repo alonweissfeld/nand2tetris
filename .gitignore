@@ -15,3 +15,6 @@
 
 # Specific vm files within project 9
 projects/09/**/*.vm
+
+# XML files within project 10
+projects/10/**/*.xml
