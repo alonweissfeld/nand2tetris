@@ -1,3 +1,4 @@
+import re
 from collections import deque
 
 class JackTokenizer:
@@ -7,7 +8,7 @@ class JackTokenizer:
     the type of each token, as defined by the Jack grammar.
     """
     def __init__(self, filename):
-        self.filename = open(filename, 'r')
+        self.filename = filename
         self.current_token = None
         self.tokens = self.init()
 
@@ -99,6 +100,7 @@ class JackTokenizer:
             return
 
         self.current_token = self.tokens.popleft()
+        self.current_type = self.token_type()
 
     def token_type(self):
         """
@@ -125,7 +127,7 @@ class JackTokenizer:
         """
         Returns the keyword which is the current token, as a constant.
         """
-        if self.token_type() != 'KEYWORD':
+        if self.current_type != 'KEYWORD':
             raise TypeError('Current type is not a keyword.')
 
         return self.keywords[self.current_token]
@@ -134,7 +136,7 @@ class JackTokenizer:
         """
         Returns the character which is the current symbol token.
         """
-        if self.token_type() != 'SYMBOL':
+        if self.current_type != 'SYMBOL':
             raise TypeError('Current type is not a symbol.')
 
         return self.current_token
@@ -143,7 +145,7 @@ class JackTokenizer:
         """
         Returns the string which is the current identifier token.
         """
-        if self.token_type() != 'IDENTIFIER':
+        if self.current_type != 'IDENTIFIER':
             raise TypeError('Current token is not an identifier.')
 
         return self.curr_token
@@ -152,7 +154,7 @@ class JackTokenizer:
         """
         Returns the integer value of the current token.
         """
-        if self.token_type() != 'INT_CONST':
+        if self.current_type != 'INT_CONST':
             raise TypeError('Current token is not an integer.')
 
         return int(self.current_token)
@@ -162,8 +164,7 @@ class JackTokenizer:
         Returns the string value of the current token, without the
         opening and closing double quotes.
         """
-        if self.token_type() != 'STRING_CONST':
+        if self.current_type != 'STRING_CONST':
             raise TypeError('Current token is not a string.')
 
         return self.current_token[1:-1]
-        

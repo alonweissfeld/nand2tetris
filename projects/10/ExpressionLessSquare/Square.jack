@@ -3,12 +3,11 @@
 // by Nisan and Schocken, MIT Press.
 /// File name: projects/10/ExpressionLessSquare/Square.jack
 
-/** Expressionless version of projects/10/Square/Square.jack. */
 
 class Square {
 
-   field int x, y; 
-   field int size; 
+   field int x, y;
+   field int size;
 
    constructor Square new(int Ax, int Ay, int Asize) {
       let x = Ax;
@@ -96,4 +95,4 @@ class Square {
       }
       return;
    }
-}  
+}

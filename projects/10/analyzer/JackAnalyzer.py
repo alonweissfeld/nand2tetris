@@ -3,8 +3,8 @@ import os
 import sys
 import glob
 
-from parser import Parser
-from writer import CodeWriter
+from tokenizer import JackTokenizer
+from compiler import CompilationEngine
 
 def main():
     path = None
@@ -30,7 +30,6 @@ def main():
         if path.endswith('/'):
             path = path[:-1]
 
-
         # Use all files in direcotry.
         files = glob.glob(os.path.join(path, '*.jack'))
     else:
@@ -38,13 +37,25 @@ def main():
         files = [path]
 
     try:
-        # Analyze each jack file.
-        pass
+        for filename in files:
+            tok = JackTokenizer(filename)
+            eng = CompilationEngine(filename)
+
+            eng.write_line('<tokens>')
+            while tok.has_more_tokens():
+                tok.advance()
+                eng.write_token(tok.current_token, tok.current_type)
+
+            eng.write_line('</tokens>')
+            eng.close()
+
 
     except IOError, err:
         print "Encountered an I/O Error:", str(err)
     except ValueError, err:
         print "Encountered a Value Error:", str(err)
+    except TypeError, err:
+        print "Encountered a Type Error:", str(err)
 
 
 if __name__ == '__main__':
