@@ -10,6 +10,10 @@ class JackTokenizer:
     def __init__(self, filename):
         self.filename = filename
         self.current_token = None
+        self.current_type = None
+
+        # Defines a deque collection of all the tokens
+        # of the given jack file.
         self.tokens = self.init()
 
         # Defines the symbols characters as part of the Jack langauge.
@@ -94,6 +98,7 @@ class JackTokenizer:
     def advance(self):
         """
         Gets the next token from the input, and makes it the current token.
+        While at it, check for further tokens down the road.
         """
         if not self.has_more_tokens:
             print "No more tokens."
@@ -105,66 +110,106 @@ class JackTokenizer:
     def token_type(self):
         """
         Returns the type of the current token, as a constant.
+        Since the type might be ambiguous for expressions like
+        field int x,y; We might need to further seperate.
         """
         token = self.current_token
 
-        if token in self.symbols:
+        # Symbols.
+        if token[0] in self.symbols:
+            self.current_token = self.symbol()
             return 'SYMBOL'
 
-        if token in self.keywords:
-            return 'KEYWORD'
-
-        if '"' in token:
+        # String constans.
+        if token[0] == '"':
+            self.current_token = self.string_val()
             return 'STRING_CONST'
 
-        try:
-            token = int(token)
+        if token in self.keywords:
+            self.current_token = token
+            return 'KEYWORD'
+
+        # Int constants.
+        int_val = self.int_val()
+        if (int_val):
+            self.current_token = int_val
             return 'INT_CONST'
-        except ValueError:
-            return 'IDENTIFIER'
+
+        # Identifiers.
+        self.current_token = self.identifier()
+        # As the whole token might be an expression like:
+        # Memory.deAlloc(this), and thus seperated at some stage
+        # to 'this)', it wasn't recognized as a keyword.
+        return 'KEYWORD' if self.current_token in self.keywords else 'IDENTIFIER'
 
     def keyword(self):
         """
         Returns the keyword which is the current token, as a constant.
         """
-        if self.current_type != 'KEYWORD':
-            raise TypeError('Current type is not a keyword.')
+        token = self.current_token
+        if (token not in self.keywords):
+            raise TypeError('Current token is not a keyword.')
 
-        return self.keywords[self.current_token]
+        return self.keywords.get(token)
 
     def symbol(self):
         """
         Returns the character which is the current symbol token.
         """
-        if self.current_type != 'SYMBOL':
-            raise TypeError('Current type is not a symbol.')
+        token = self.current_token
+        if (token[0] not in self.symbols):
+            raise TypeError('Current token is not a symbol.')
 
-        return self.current_token
+        # Support a sequence of tokens, for example "field int x ,y;".
+        # Our token might be ,y; and needs to be seperated.
+        if len(token) > 1:
+            self.tokens.appendleft(token[1:])
+            token = token[0]
+
+        return token
 
     def identifier(self):
         """
         Returns the string which is the current identifier token.
         """
-        if self.current_type != 'IDENTIFIER':
-            raise TypeError('Current token is not an identifier.')
+        # We need to check for trailing symbol, for exmaple in case
+        # when we declare field int x, y;
+        token = self.current_token
+        for idx, el in enumerate(token):
+            if el in self.symbols:
+                # Current identifier reached it's last char.
+                self.tokens.appendleft(token[idx:])
+                token = token[:idx]
+                break
 
-        return self.curr_token
+        return token
 
     def int_val(self):
         """
         Returns the integer value of the current token.
         """
-        if self.current_type != 'INT_CONST':
-            raise TypeError('Current token is not an integer.')
-
-        return int(self.current_token)
+        token = self.current_token
+        try:
+            token = int(token)
+            return token
+        except ValueError:
+            return None
 
     def string_val(self):
         """
         Returns the string value of the current token, without the
         opening and closing double quotes.
         """
-        if self.current_type != 'STRING_CONST':
+        token = self.current_token
+        if token[0] != '"':
             raise TypeError('Current token is not a string.')
 
-        return self.current_token[1:-1]
+        string = token[1:]
+        for idx in range(len(string)):
+            if string[idx] == '"':
+                # We're done with string.
+                string = string[:idx].strip()
+                if token[idx + 1:]:
+                    self.tokens.appendleft(token[idx + 1:])
+
+        return string
