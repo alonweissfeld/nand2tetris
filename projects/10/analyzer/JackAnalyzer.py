@@ -39,15 +39,19 @@ def main():
     try:
         for filename in files:
             tok = JackTokenizer(filename)
-            eng = CompilationEngine(filename)
+            engine = CompilationEngine(tok)
 
-            eng.write_line('<tokens>')
-            while tok.has_more_tokens():
-                tok.advance()
-                eng.write_token(tok.current_token, tok.current_type)
+            # Since the first token in a valid Jack file must be class,
+            # the parsing process starts by calling the CompileClass routine.
+            engine.compile_class()
 
-            eng.write_line('</tokens>')
-            eng.close()
+            # Tokenizer test only.
+            #eng.write_line('<tokens>')
+            # while tok.has_more_tokens():
+            #     tok.advance()
+            #     eng.write_token(tok.current_token, tok.current_type)
+            #eng.write_line('</tokens>')
+            engine.close()
 
 
     except IOError, err:
