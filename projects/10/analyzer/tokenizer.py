@@ -213,3 +213,9 @@ class JackTokenizer:
                     self.tokens.appendleft(token[idx + 1:])
 
         return string
+
+    def peek(self):
+        """
+        Peek at leftmost item.
+        """
+        return self.tokens[0]

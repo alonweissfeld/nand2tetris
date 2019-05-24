@@ -150,7 +150,7 @@ class CompilationEngine:
             # Compile relevant statement.
             method = 'compile_{}'.format(statement)
             self[method]()
-
+            tok.advance() # Proceed to next statement
 
         self.write_line('</statements>') # We're done.
 
@@ -158,7 +158,37 @@ class CompilationEngine:
         """
         Compiles a let statement.
         """
-        pass
+        tok = self.tokenizer
+        self.write_line('<letStatement>')
+
+        if tok.current_token != 'let':
+            raise TypeError('Let statement must start with a "let".')
+
+        # let
+        self.write_token(tok.current_token, tok.current_type)
+        tok.advance()
+
+        if tok.current_type != 'IDENTIFIER':
+            raise TypeError('Let statement must proceed with an identifier.')
+
+        # keyword (e.g., 'x')
+        self.write_token(tok.current_token, tok.current_type)
+        tok.advance()
+
+        if tok.current_token != '=':
+            raise TypeError('Let statement must proceed with a =.')
+
+        # =
+        self.write_token(tok.current_token, tok.current_type)
+        tok.advance()
+
+        self.compile_expression()
+
+        if tok.current_token != ';':
+            raise TypeError('Let statement must end with a ;.')
+
+        self.write(';', 'SYMBOL')
+        self.write_line('</letStatement>')
 
     def compile_do(self):
         """
@@ -189,7 +219,15 @@ class CompilationEngine:
         """
         Compiles an expression.
         """
-        pass
+        tok = self.tokenizer
+        self.write('<expression>')
+
+        while tok.current_token not in [')', ';', ',']:
+            tok.compile_term()
+            # Todo - distinguish betwen terms and symbols?
+            tok.advance()
+
+        self.write('</expression>')
 
     def compile_term(self):
         """
@@ -199,13 +237,50 @@ class CompilationEngine:
         to distinguish between the possibilities. Any other token is not
         part of this term and should not be advanced over.
         """
-        pass
+        tok = self.tokenizer
+        self.write('<term>')
+
+        current = (tok.current_token, tok.current_type)
+        if current[1] == 'IDENTIFIER':
+            # Resolve into a variable, array entry or a subroutine call.
+            self.write_token(current[0], current[1])
+
+            if '.' in tok.peek():
+                # Soubroutine
+                tok.advance()  # '.'
+                self.write_token(tok.current_token, tok.current_type)
+
+                tok.advance() # Subroutine name.
+                self.write_token(tok.current_token, tok.current_type)
+
+                tok.advance() # (
+                if tok.current_token != '(':
+                    raise TypeError('Subroutine call must start with (')
+
+                self.write_token(tok.current_token, tok.current_type)
+
+                # Subroutine expressions list.
+                tok.advance()
+                self.compile_expression_list()
+
+                if tok.current_token != ')':
+                    raise TypeError('Soubroutine call must end with )')
+
+                self.write_token(')', 'SYMBOL') # End of subroutine call.
+
+        self.write('</term>')
 
     def compile_expression_list(self):
         """
         Compiles a (possibly empty) comma- separated list of expressions.
         """
-        pass
+        self.write_line('<expressionList>')
+
+        while tok.current_token != ')':
+            self.compile_expression()
+            tok.advance()
+
+        self.write_line('</expressionList>')
 
 
     def write_token(self, token, type):
