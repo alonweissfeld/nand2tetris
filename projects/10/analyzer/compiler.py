@@ -143,6 +143,7 @@ class CompilationEngine:
 
         # Write statements until ending closing bracket of parent subroutine.
         while tok.current_token != '}':
+            statement = tok.current_token
             if statement not in self.statements:
                 s = ', '.join(self.statements)
                 raise TypeError('Statement should start with one of ' + s)
@@ -194,7 +195,55 @@ class CompilationEngine:
         """
         Compiles a do statement.
         """
-        pass
+        tok = self.tokenizer
+        if tok.current_token != 'do':
+            raise TypeError('doStatement must start with do.')
+
+        self.write_line('<doStatement>')
+
+        # do
+        self.write_token(tok.current_token, tok.current_type)
+
+        # Class name
+        tok.advace()
+        self.write_token(tok.current_token, tok.current_type)
+
+        # .
+        tok.advace()
+        self.write_token(tok.current_token, tok.current_type)
+
+        # Subroutine name
+        tok.advace()
+        self.write_token(tok.current_token, tok.current_type)
+
+        # Open brackets and call to function
+        tok.advance()
+        self.compile_subroutine_invoke()
+
+        tok.advance()
+        if tok.current_token != ';':
+            raise TypeError('doStatement must end with ;')
+
+        self.write_tokn(';', 'SYMBOL')
+        self.write_line('</doStatement>')
+
+    def compile_subroutine_invoke(self):
+        """
+        Compiles a subroutine invokation.
+        """
+        if tok.current_token != '(':
+            raise TypeError('Subroutine call must start with (')
+
+        self.write_token(tok.current_token, tok.current_type)
+
+        # Subroutine expressions list.
+        tok.advance()
+        self.compile_expression_list()
+
+        if tok.current_token != ')':
+            raise TypeError('Soubroutine call must end with )')
+
+        self.write_token(')', 'SYMBOL') # End of subroutine call.
 
     def compile_if(self):
         """
@@ -253,21 +302,9 @@ class CompilationEngine:
                 tok.advance() # Subroutine name.
                 self.write_token(tok.current_token, tok.current_type)
 
-                tok.advance() # (
-                if tok.current_token != '(':
-                    raise TypeError('Subroutine call must start with (')
-
-                self.write_token(tok.current_token, tok.current_type)
-
-                # Subroutine expressions list.
+                # Open brackets and call to function
                 tok.advance()
-                self.compile_expression_list()
-
-                if tok.current_token != ')':
-                    raise TypeError('Soubroutine call must end with )')
-
-                self.write_token(')', 'SYMBOL') # End of subroutine call.
-
+                self.compile_subroutine_invoke()
         self.write('</term>')
 
     def compile_expression_list(self):
