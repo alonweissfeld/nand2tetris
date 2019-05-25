@@ -249,20 +249,96 @@ class CompilationEngine:
         """
         Compiles an if statement, possibly with a trailing else clause.
         """
-        pass
+        tok = self.tokenizer
+        if tok.current_token != 'if':
+            raise TypeError('ifStatement must start with if.')
+
+        self.write_line('<ifStatement>')
+        self.write_token(tok.current_token, tok.current_type) # if
+
+        # (
+        tok.advance()
+        if tok.current_token != '(':
+            raise TypeError('ifStatement must proceed with (.')
+        self.write_tokn(tok.current_token, tok.current_type)
+
+        # E.g., x > 2
+        self.compile_expression()
+
+        # )
+        if tok.current_token != ')':
+            raise TypeError('ifStatement must end with ).')
+        self.write_token(tok.current_token, tok.current_type)
+
+        # {
+        tok.advance()
+        if tok.current_token != '{':
+            raise TypeError('ifStatement requires opening curley bracket.')
+        self.write_token(tok.current_token, tok.current_type)
+
+        self.compile_statements()
+
+        # }
+        if tok.current_token != '}':
+            raise TypeError('ifStatement requires closig with curley bracket.')
+        self.write_token(tok.current_token, tok.current_type)
+        self.write_line('</ifStatement>')
+
 
     def compile_while(self):
         """
         Compiles a while statement.
         """
-        pass
+        tok = self.tokenizer
+        if tok.current_token != 'while':
+            raise TypeError('whileStatement must start with while.')
+        self.write_line('<whileStatement>')
+        self.write_token(tok.current_token, tok.current_type)
 
+        # (
+        tok.advance()
+        if tok.current_token != '(':
+            raise TypeError('ifStatement must proceed with (.')
+        self.write_tokn(tok.current_token, tok.current_type)
+
+        self.compile_expression()
+
+        # )
+        if tok.current_token != ')':
+            raise TypeError('whileStatement must end with ).')
+        self.write_token(tok.current_token, tok.current_type)
+
+        # {
+        tok.advance()
+        if tok.current_token != '{':
+            raise TypeError('whileStatement requires opening curley bracket.')
+        self.write_token(tok.current_token, tok.current_type)
+
+        self.compile_statements()
+
+        # }
+        if tok.current_token != '}':
+            raise TypeError('whileStatement requires closig with curley bracket.')
+        self.write_token(tok.current_token, tok.current_type)
+        self.write_line('</whileStatement>')
 
     def compile_return(self):
         """
         Compiles a return statement.
         """
-        pass
+        tok = self.tokenizer
+        if tok.current_token != 'return':
+            raise TypeError('returnStatement must start with return.')
+        self.write_line('<returnStatement>')
+        self.write_token(tok.current_token, tok.current_type)
+
+        tok.advance()
+        if tok.current_token != ';'
+            self.compile_expression()
+        else:
+            self.write_token(tok.current_token, tok.current_type)
+
+        self.write_line('</returnStatement>')
 
     def compile_expression(self):
         """
