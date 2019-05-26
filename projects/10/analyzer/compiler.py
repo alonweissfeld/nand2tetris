@@ -23,21 +23,25 @@ class CompilationEngine:
         self.subroutines = ['constructor', 'function', 'method']
         self.statements = ['let', 'do', 'if', 'while', 'return']
         self.ops = ['+', '-', '*', '/', '&', '|', '<', '>', '=']
+        self.unary_ops = ['~', '-']
 
 
     def compile_class(self):
         """
         Compiles a complete class.
         """
-        self.write_line('<class>')
 
         class_intestines = self.subroutines + self.class_var_dec
         token = None
-        while token not in class_intestines and tokenizer.has_more_tokens():
-            tokenizer.advance()
-            type = tokenizer.current_type
-            token = tokenizer.current_token
-            self.write_token(token, type)
+
+        if not self.tokenizer.has_more_tokens():
+            raise new SyntaxError('No tokens available to compile.')
+
+        self.tokenizer.advance()
+        self.write_line('<class>')
+        self.process('class')
+        self.process(self.tokenizer.current_token) # class name
+        self.process('{')
 
         # Reached a variable declaration or a subroutine,
         # there might be more than one.
@@ -48,7 +52,7 @@ class CompilationEngine:
         while token in self.subroutines:
             self.compile_subroutine_dec()
 
-
+        self.process('}')
         self.write_line('</class>')
 
     def compile_class_var_dec(self):
@@ -267,15 +271,26 @@ class CompilationEngine:
         self.write('<term>')
 
         if self.tokenizer.current_type == 'IDENTIFIER':
-            # Resolve into a variable, array entry or a subroutine call.
+            # Resolve into a variable.
             self.process(self.tokenizer.current_token)
 
-            # Soubroutine
+            # Resolves into a soubroutine call.
             if '.' in self.tokenizer.peek():
                 self.process(self.tokenizer.current_token) # '.'
                 self.process(self.tokenizer.current_token) # Subroutine name.
-                self.process('(')
                 self.compile_subroutine_invoke()
+
+        elif self.tokenizer.current_token in self.unary_ops:
+            self.process(self.tokenizer.current_token)
+            self.compile_term()
+
+        else:
+            if self.tokenizer.current_token == '(':
+                self.process(self.tokenizer.current_token)
+                self.compile_expression()
+            else:
+                self.process(self.tokenizer.current_token)
+
 
         self.write('</term>')
 
