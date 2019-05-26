@@ -185,9 +185,12 @@ class CompilationEngine:
         self.write_line('<doStatement>')
         self.process('do')
 
-        self.process(self.tokenizer.current_token) # Class name
-        self.process(self.tokenizer.current_token) # .
-        self.process(self.tokenizer.current_token) # Subroutine name
+        if '.' in self.tokenizer.peek():
+            self.process(self.tokenizer.current_token) # Class name
+            self.process(self.tokenizer.current_token) # .
+            self.process(self.tokenizer.current_token) # Subroutine name
+        else:
+            self.process(self.tokenizer.current_token) # local routine name
 
         self.compile_subroutine_invoke()
 
@@ -311,6 +314,11 @@ class CompilationEngine:
 
         while self.tokenizer.current_token != ')':
             self.compile_expression()
+
+            if self.tokenizer.current_token == ')':
+                break
+
+            self.process(',') # next expression
 
         self.write_line('</expressionList>')
 
