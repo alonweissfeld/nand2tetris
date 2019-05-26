@@ -13,7 +13,7 @@ class CompilationEngine:
         if not tokenizer or not tokenizer.filename:
             raise TypeError('Tokenizer not valid.')
 
-        filename = re.sub('.jack$', '1.xml', tokenizer.filename)
+        filename = re.sub('.jack$', '.xml', tokenizer.filename)
 
         self.xml = open(filename, 'w')
         self.tokenizer = tokenizer
