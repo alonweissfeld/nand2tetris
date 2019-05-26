@@ -58,35 +58,43 @@ class JackTokenizer:
         with open(self.filename, 'r') as f:
             data = f.read()
 
+        # Remove API comments (/** some comment here.. */)
+        data = re.sub('(/\*{2,}(\n|.*?)*?\*/)*', '', data)
+
         data = data.split('\n') # Split by new line
         data = [l.strip() for l in data] # Strip white space
         data = [l.split('//')[0] for l in data ] # Remove inline comments
-
-        # Remove comment until closing or API comments.
-        within_comment = False
-        for idx, line in enumerate(data):
-            if '/*' in line:
-                # This line is a comment or alternatively - there
-                # is a comment amidst the line.
-                data[idx] = re.sub('/\*.*$', '', line).strip()
-                within_comment = True
-
-            if within_comment:
-                # The complete line is a comment.
-                data[idx] = ''
-
-            if '*/' in line:
-                # Comment closure.
-                data[idx] = re.sub('\*/.*$', '', line).strip()
-                within_comment = False
 
         # We have filtered all the lines of the file to just code.
         # Now, make a final tokens array - seperated as words.
         tokens = []
         for line in data:
-            if line:
-                tokens.extend(line.split())
+            if not line:
+                continue
 
+            # Handle strings - shouldn't be seperated by white space.
+            if '"' not in line:
+                tokens.extend(line.split())
+                continue
+
+            # Current line includes a string.
+            try:
+                start_idx, end_idx = (m.start() for m in \
+                    re.finditer(r'"', line))
+
+                if line[:start_idx]:
+                    tokens.extend(line[:start_idx].split())
+
+                # The string itself.
+                tokens.append(line[start_idx:end_idx + 1])
+
+                if line[end_idx + 1:]:
+                    tokens.extend(line[end_idx + 1:].split())
+
+            except ValueError:
+                raise SyntaxError('Invalid Jack string.')
+
+        print tokens
         return deque(tokens)
 
     def has_more_tokens(self):
@@ -132,6 +140,7 @@ class JackTokenizer:
         # Int constants.
         int_val = self.int_val()
         if (int_val):
+            print "got int val:", int_val
             self.current_token = int_val
             return 'INT_CONST'
 
@@ -189,11 +198,18 @@ class JackTokenizer:
         Returns the integer value of the current token.
         """
         token = self.current_token
-        try:
-            token = int(token)
-            return token
-        except ValueError:
+        if not token[0].isdigit():
             return None
+
+        # We have a digit token, potentially, but we need
+        # to verify it or find trailing symbols.
+        integer = None
+        for idx, el in enumerate(token):
+            if not el.isdigit() or el in self.symbols:
+                integer = token[:idx]
+                self.tokens.appendleft(token[idx:])
+                break
+        return integer
 
     def string_val(self):
         """
@@ -204,13 +220,15 @@ class JackTokenizer:
         if token[0] != '"':
             raise TypeError('Current token is not a string.')
 
-        string = token[1:]
-        for idx in range(len(string)):
-            if string[idx] == '"':
-                # We're done with string.
-                string = string[:idx].strip()
-                if token[idx + 1:]:
-                    self.tokens.appendleft(token[idx + 1:])
+        idx = token[1:].find('"')
+        if idx < 0:
+            raise SyntaxError('Invalid string.')
+
+        string = token[1:idx + 1]
+
+        # Check trailing tokens.
+        if token[idx + 2:]:
+            self.tokens.appendleft(token[idx + 1:])
 
         return string
 

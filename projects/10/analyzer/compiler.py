@@ -112,7 +112,7 @@ class CompilationEngine:
 
     def compile_subroutine_body(self):
         """
-        Compiles a subroutine’s body.
+        Compiles a subroutine's body.
         """
         tok = self.tokenizer
         self.write_line('<subroutineBody>')
@@ -333,7 +333,7 @@ class CompilationEngine:
         self.write_token(tok.current_token, tok.current_type)
 
         tok.advance()
-        if tok.current_token != ';'
+        if tok.current_token != ';':
             self.compile_expression()
         else:
             self.write_token(tok.current_token, tok.current_type)
@@ -402,11 +402,14 @@ class CompilationEngine:
         defined by the given type.
         """
         # Support standart XML representation.
+        token = token.replace('&', '&amp;')
         token = token.replace('>', '&gt;')
         token = token.replace('<', '&lt;')
-        token = token.replace('&', '&amp;')
 
         type = type.lower()
+        type = type.replace('int_const', 'integerConstant')
+        type = type.replace('string_const', 'stringConstant')
+
         line = '<{}> {} </{}>'.format(type, token, type)
         self.write_line(line)
 
