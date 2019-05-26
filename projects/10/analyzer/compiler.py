@@ -1,4 +1,5 @@
 import re
+import inspect
 
 class CompilationEngine:
     """
@@ -30,12 +31,8 @@ class CompilationEngine:
         """
         Compiles a complete class.
         """
-
-        class_intestines = self.subroutines + self.class_var_dec
-        token = None
-
         if not self.tokenizer.has_more_tokens():
-            raise new SyntaxError('No tokens available to compile.')
+            raise SyntaxError('No tokens available to compile.')
 
         self.tokenizer.advance()
         self.write_line('<class>')
@@ -45,11 +42,11 @@ class CompilationEngine:
 
         # Reached a variable declaration or a subroutine,
         # there might be more than one.
-        while token in self.class_var_dec:
+        while self.tokenizer.current_token in self.class_var_dec:
             self.compile_class_var_dec()
 
         # Keep on writing subroutines until end of class.
-        while token in self.subroutines:
+        while self.tokenizer.current_token in self.subroutines:
             self.compile_subroutine_dec()
 
         self.process('}')
@@ -82,14 +79,14 @@ class CompilationEngine:
 
         # Write parameters list, e.g, (int Ax, int Ay, int Asize)
         self.process('(')
-        self.compile_parameter_list().
+        self.compile_parameter_list()
         self.process(')')
 
         # Subroutine body
         self.compile_subroutine_body()
 
         # We're done with subroutine.
-        self.write_lines('</subroutineDec>')
+        self.write_line('</subroutineDec>')
 
     def compile_parameter_list(self):
         """
@@ -98,7 +95,7 @@ class CompilationEngine:
         self.write_line('<parameterList>')
 
         # Write the subroutine params.
-        while tok.current_token != ')':
+        while self.tokenizer.current_token != ')':
             self.process(self.tokenizer.current_token)
 
         self.write_line('</parameterList>')
@@ -128,14 +125,14 @@ class CompilationEngine:
         """
         Compiles a var declaration.
         """
-        self.write('<varDec>')
+        self.write_line('<varDec>')
         self.process('var')
 
         while self.tokenizer.current_token != ';':
             self.process(self.tokenizer.current_token)
 
         self.process(';')
-        self.write('</varDec>')
+        self.write_line('</varDec>')
 
 
     def compile_statements(self):
@@ -153,8 +150,9 @@ class CompilationEngine:
                 raise SyntaxError('Statement should start with one of ' + s)
 
             # Compile relevant statement.
-            method = 'compile_{}'.format(statement)
-            self[method]()
+            method = getattr(self, 'compile_' + statement)
+            method()
+
 
         self.write_line('</statements>') # We're done.
 
@@ -168,6 +166,12 @@ class CompilationEngine:
         if self.tokenizer.current_type != 'IDENTIFIER':
             raise TypeError('Let statement must proceed with an identifier.')
         self.process(self.tokenizer.current_token)
+
+        # Placement might be an array entring.
+        if self.tokenizer.current_token == '[':
+            self.process('[')
+            self.compile_expression()
+            self.process(']')
 
         self.process('=')
         self.compile_expression()
@@ -184,9 +188,6 @@ class CompilationEngine:
         self.process(self.tokenizer.current_token) # Class name
         self.process(self.tokenizer.current_token) # .
         self.process(self.tokenizer.current_token) # Subroutine name
-
-        # Open brackets and call to function
-        self.process(self.tokenizer.current_token)
 
         self.compile_subroutine_invoke()
 
@@ -215,6 +216,14 @@ class CompilationEngine:
         self.process('{')
         self.compile_statements()
         self.process('}')
+
+        # Check if there's proceeding 'else'
+        if self.tokenizer.current_token == 'else':
+            self.process('else')
+            self.process('{')
+            self.compile_statements()
+            self.process('}')
+
         self.write_line('</ifStatement>')
 
     def compile_while(self):
@@ -250,15 +259,15 @@ class CompilationEngine:
         """
         Compiles an expression.
         """
-        self.write('<expression>')
+        self.write_line('<expression>')
 
-        while self.tokenizer.current_token not in [')', ';', ',']:
+        while self.tokenizer.current_token not in [')', ']',';', ',']:
             if self.tokenizer.current_token in self.ops:
                 self.process(self.tokenizer.current_token)
             else:
                 self.compile_term()
 
-        self.write('</expression>')
+        self.write_line('</expression>')
 
     def compile_term(self):
         """
@@ -268,7 +277,7 @@ class CompilationEngine:
         to distinguish between the possibilities. Any other token is not
         part of this term and should not be advanced over.
         """
-        self.write('<term>')
+        self.write_line('<term>')
 
         if self.tokenizer.current_type == 'IDENTIFIER':
             # Resolve into a variable.
@@ -292,7 +301,7 @@ class CompilationEngine:
                 self.process(self.tokenizer.current_token)
 
 
-        self.write('</term>')
+        self.write_line('</term>')
 
     def compile_expression_list(self):
         """
@@ -311,10 +320,13 @@ class CompilationEngine:
         and advances to get the next token.
         """
         if self.tokenizer.current_token != string:
-            raise SyntaxError('Invalid token. Expected: {}'.format(str))
+            caller = inspect.stack()[1][3]
+            msg = 'Invalid token found in {}, expected: {}'.format(caller, string)
+            raise SyntaxError(msg)
 
         self.write_token(string, self.tokenizer.current_type)
-        self.tokenizer.advance()
+        if self.tokenizer.has_more_tokens():
+            self.tokenizer.advance()
 
     def write_token(self, token, type):
         """

@@ -94,7 +94,6 @@ class JackTokenizer:
             except ValueError:
                 raise SyntaxError('Invalid Jack string.')
 
-        print tokens
         return deque(tokens)
 
     def has_more_tokens(self):

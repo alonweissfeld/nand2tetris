@@ -53,6 +53,7 @@ def main():
             # engine.write_line('</tokens>')
             engine.close()
 
+        print "Completed compilation for {}".format(path)
 
     except IOError, err:
         print "Encountered an I/O Error:", str(err)
