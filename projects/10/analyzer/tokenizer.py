@@ -139,7 +139,6 @@ class JackTokenizer:
         # Int constants.
         int_val = self.int_val()
         if (int_val):
-            print "got int val:", int_val
             self.current_token = int_val
             return 'INT_CONST'
 

@@ -283,11 +283,17 @@ class CompilationEngine:
         self.write_line('<term>')
 
         if self.tokenizer.current_type == 'IDENTIFIER':
-            # Resolve into a variable.
+            # Resolve into a variable or local routine.
             self.process(self.tokenizer.current_token)
 
-            # Resolves into a soubroutine call.
-            if '.' in self.tokenizer.peek():
+            # Resolves into array entry.
+            if self.tokenizer.current_token == '[':
+                self.process('[')
+                self.compile_expression()
+                self.process(']')
+
+            # Resolves into a static soubroutine call.
+            elif self.tokenizer.current_token == '.':
                 self.process(self.tokenizer.current_token) # '.'
                 self.process(self.tokenizer.current_token) # Subroutine name.
                 self.compile_subroutine_invoke()
@@ -296,12 +302,13 @@ class CompilationEngine:
             self.process(self.tokenizer.current_token)
             self.compile_term()
 
+        # Recurssive expression.
+        elif self.tokenizer.current_token == '(':
+            self.process(self.tokenizer.current_token)
+            self.compile_expression()
+
         else:
-            if self.tokenizer.current_token == '(':
-                self.process(self.tokenizer.current_token)
-                self.compile_expression()
-            else:
-                self.process(self.tokenizer.current_token)
+            self.process(self.tokenizer.current_token)
 
 
         self.write_line('</term>')
