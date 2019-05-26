@@ -45,12 +45,7 @@ def main():
             # the parsing process starts by calling the CompileClass routine.
             engine.compile_class()
 
-            # Tokenizer test only.
-            # engine.write_line('<tokens>')
-            # while tok.has_more_tokens():
-            #     tok.advance()
-            #     engine.write_token(tok.current_token, tok.current_type)
-            # engine.write_line('</tokens>')
+            # We're done, close the current engine for the current file.
             engine.close()
 
         print "Completed compilation for {}".format(path)
