@@ -169,9 +169,7 @@ class CompilationEngine:
 
         # Placement might be an array entring.
         if self.tokenizer.current_token == '[':
-            self.process('[')
-            self.compile_expression()
-            self.process(']')
+            self.compile_array_entry()
 
         self.process('=')
         self.compile_expression()
@@ -264,11 +262,13 @@ class CompilationEngine:
         """
         self.write_line('<expression>')
 
+        previous_was_term = False
         while self.tokenizer.current_token not in [')', ']',';', ',']:
-            if self.tokenizer.current_token in self.ops:
+            if self.tokenizer.current_token in self.ops and previous_was_term:
                 self.process(self.tokenizer.current_token)
             else:
                 self.compile_term()
+                previous_was_term = True
 
         self.write_line('</expression>')
 
@@ -288,9 +288,7 @@ class CompilationEngine:
 
             # Resolves into array entry.
             if self.tokenizer.current_token == '[':
-                self.process('[')
-                self.compile_expression()
-                self.process(']')
+                self.compile_array_entry()
 
             # Resolves into a static soubroutine call.
             elif self.tokenizer.current_token == '.':
@@ -306,6 +304,7 @@ class CompilationEngine:
         elif self.tokenizer.current_token == '(':
             self.process(self.tokenizer.current_token)
             self.compile_expression()
+            self.process(')')
 
         else:
             self.process(self.tokenizer.current_token)
@@ -342,6 +341,14 @@ class CompilationEngine:
         self.write_token(string, self.tokenizer.current_type)
         if self.tokenizer.has_more_tokens():
             self.tokenizer.advance()
+
+    def compile_array_entry(self):
+        """
+        A helper routine to compile an array entry.
+        """
+        self.process('[')
+        self.compile_expression()
+        self.process(']')
 
     def write_token(self, token, type):
         """
