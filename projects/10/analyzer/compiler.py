@@ -17,10 +17,12 @@ class CompilationEngine:
         self.xml = open(filename, 'w')
         self.tokenizer = tokenizer
 
-        # Different keywords partition to digest the structure of program.
+        # Different keywords and operators partition to digest
+        # the structure of program.
         self.class_var_dec = ['static', 'field']
         self.subroutines = ['constructor', 'function', 'method']
         self.statements = ['let', 'do', 'if', 'while', 'return']
+        self.ops = ['+', '-', '*', '/', '&', '|', '<', '>', '=']
 
 
     def compile_class(self):
@@ -53,18 +55,15 @@ class CompilationEngine:
         """
         Compiles a static variable declaration, or a field declaration.
         """
-        tok = self.tokenizer
         self.write_line('<classVarDec>')
 
         # Iterate tokens until reaching a command break (';').
-        while tok.current_token != ';':
-            self.write_token(tok.current_token, tok.current_type)
-            tok.advance()
+        while self.tokenizer.current_token != ';':
+            self.process(self.tokenizer.current_token)
 
         # Now write ; as part of this class variable declaration.
-        self.write_token(';', 'SYMBOL')
+        self.process(';')
         self.write_line('</classVarDec>')
-        tok.advance() # Prepare for next routine.
 
     def compile_subroutine_dec(self):
         """
@@ -75,22 +74,14 @@ class CompilationEngine:
 
         while tok.current_token != '(':
             # E.g., constructor Square new
-            self.write_token(tok.current_token, tok.current_type)
-            tok.advance()
+            self.process(self.tokenizer.current_token)
 
         # Write parameters list, e.g, (int Ax, int Ay, int Asize)
-        self.write_token('(', 'SYMBOL')
-        tok.advance()
-        self.compile_parameter_list()
-
-        # Deffensive - parameter list must end with parentheses.
-        if tok.current_token != ')':
-            raise TypeError('Parameters list must end with ")".')
-
-        self.write_token(')', 'SYMBOL') # Donw with params list.
+        self.process('(')
+        self.compile_parameter_list().
+        self.process(')')
 
         # Subroutine body
-        tok.advance()
         self.compile_subroutine_body()
 
         # We're done with subroutine.
@@ -100,13 +91,11 @@ class CompilationEngine:
         """
         Compiles a (possibly empty) parameter list.
         """
-        tok = self.tokenizer
         self.write_line('<parameterList>')
 
         # Write the subroutine params.
         while tok.current_token != ')':
-            self.write_token(tok.current_token, tok.current_type)
-            tok.advance()
+            self.process(self.tokenizer.current_token)
 
         self.write_line('</parameterList>')
 
@@ -114,44 +103,54 @@ class CompilationEngine:
         """
         Compiles a subroutine's body.
         """
-        tok = self.tokenizer
         self.write_line('<subroutineBody>')
+        self.process('{')
 
-        if tok.current_token != '{':
-            raise TypeError('Subroutine body must start with a curly bracket.')
+        # Before proceeding to the routine's statements,
+        # check if there are any variable declarations.
+        while self.tokenizer.current_token not in self.statements:
+            self.compile_var_dec()
 
-        self.write_token('{', 'SYMBOL')
-        tok.advance()
         # The subroutine body contains statements. For example,
         # let x = Ax;   let statement
         # do draw();    do statement
         # return x;     return statement
         self.compile_statements()
 
-        if tok.current_token != '}':
-            raise TypeError('Subroutine body must end with a curely bracket.')
-
-        self.write_token('}', 'SYMBOL')
+        self.process('}')
         self.write_line('</subroutineBody>')
+
+    def compile_var_dec(self):
+        """
+        Compiles a var declaration.
+        """
+        self.write('<varDec>')
+        self.process('var')
+
+        while self.tokenizer.current_token != ';':
+            self.process(self.tokenizer.current_token)
+
+        self.process(';')
+        self.write('</varDec>')
+
 
     def compile_statements(self):
         """
         Compiles a sequence of statements.
         """
-        tok = self.tokenizer
         self.write_line('<statements>')
 
         # Write statements until ending closing bracket of parent subroutine.
-        while tok.current_token != '}':
-            statement = tok.current_token
+        while self.tokenizer.current_token != '}':
+            # Explicitly check statement
+            statement = self.tokenizer.current_token
             if statement not in self.statements:
                 s = ', '.join(self.statements)
-                raise TypeError('Statement should start with one of ' + s)
+                raise SyntaxError('Statement should start with one of ' + s)
 
             # Compile relevant statement.
             method = 'compile_{}'.format(statement)
             self[method]()
-            tok.advance() # Proceed to next statement
 
         self.write_line('</statements>') # We're done.
 
@@ -159,198 +158,101 @@ class CompilationEngine:
         """
         Compiles a let statement.
         """
-        tok = self.tokenizer
         self.write_line('<letStatement>')
+        self.process('let')
 
-        if tok.current_token != 'let':
-            raise TypeError('Let statement must start with a "let".')
-
-        # let
-        self.write_token(tok.current_token, tok.current_type)
-        tok.advance()
-
-        if tok.current_type != 'IDENTIFIER':
+        if self.tokenizer.current_type != 'IDENTIFIER':
             raise TypeError('Let statement must proceed with an identifier.')
+        self.process(self.tokenizer.current_token)
 
-        # keyword (e.g., 'x')
-        self.write_token(tok.current_token, tok.current_type)
-        tok.advance()
-
-        if tok.current_token != '=':
-            raise TypeError('Let statement must proceed with a =.')
-
-        # =
-        self.write_token(tok.current_token, tok.current_type)
-        tok.advance()
-
+        self.process('=')
         self.compile_expression()
-
-        if tok.current_token != ';':
-            raise TypeError('Let statement must end with a ;.')
-
-        self.write(';', 'SYMBOL')
+        self.process(';')
         self.write_line('</letStatement>')
 
     def compile_do(self):
         """
         Compiles a do statement.
         """
-        tok = self.tokenizer
-        if tok.current_token != 'do':
-            raise TypeError('doStatement must start with do.')
-
         self.write_line('<doStatement>')
+        self.process('do')
 
-        # do
-        self.write_token(tok.current_token, tok.current_type)
-
-        # Class name
-        tok.advace()
-        self.write_token(tok.current_token, tok.current_type)
-
-        # .
-        tok.advace()
-        self.write_token(tok.current_token, tok.current_type)
-
-        # Subroutine name
-        tok.advace()
-        self.write_token(tok.current_token, tok.current_type)
+        self.process(self.tokenizer.current_token) # Class name
+        self.process(self.tokenizer.current_token) # .
+        self.process(self.tokenizer.current_token) # Subroutine name
 
         # Open brackets and call to function
-        tok.advance()
+        self.process(self.tokenizer.current_token)
+
         self.compile_subroutine_invoke()
 
-        tok.advance()
-        if tok.current_token != ';':
-            raise TypeError('doStatement must end with ;')
-
-        self.write_tokn(';', 'SYMBOL')
+        self.process(';') # end of do statement.
         self.write_line('</doStatement>')
 
     def compile_subroutine_invoke(self):
         """
         Compiles a subroutine invokation.
         """
-        if tok.current_token != '(':
-            raise TypeError('Subroutine call must start with (')
-
-        self.write_token(tok.current_token, tok.current_type)
-
-        # Subroutine expressions list.
-        tok.advance()
-        self.compile_expression_list()
-
-        if tok.current_token != ')':
-            raise TypeError('Soubroutine call must end with )')
-
-        self.write_token(')', 'SYMBOL') # End of subroutine call.
+        self.process('(')
+        self.compile_expression_list() # Subroutine expressions list.
+        self.process(')')
 
     def compile_if(self):
         """
         Compiles an if statement, possibly with a trailing else clause.
         """
-        tok = self.tokenizer
-        if tok.current_token != 'if':
-            raise TypeError('ifStatement must start with if.')
-
         self.write_line('<ifStatement>')
-        self.write_token(tok.current_token, tok.current_type) # if
+        self.process('if')
+        self.process('(')
+        self.compile_expression() # E.g., x > 2
+        self.process(')') # End of if condition statement.
 
-        # (
-        tok.advance()
-        if tok.current_token != '(':
-            raise TypeError('ifStatement must proceed with (.')
-        self.write_tokn(tok.current_token, tok.current_type)
-
-        # E.g., x > 2
-        self.compile_expression()
-
-        # )
-        if tok.current_token != ')':
-            raise TypeError('ifStatement must end with ).')
-        self.write_token(tok.current_token, tok.current_type)
-
-        # {
-        tok.advance()
-        if tok.current_token != '{':
-            raise TypeError('ifStatement requires opening curley bracket.')
-        self.write_token(tok.current_token, tok.current_type)
-
+        # if statement body
+        self.process('{')
         self.compile_statements()
-
-        # }
-        if tok.current_token != '}':
-            raise TypeError('ifStatement requires closig with curley bracket.')
-        self.write_token(tok.current_token, tok.current_type)
+        self.process('}')
         self.write_line('</ifStatement>')
-
 
     def compile_while(self):
         """
         Compiles a while statement.
         """
-        tok = self.tokenizer
-        if tok.current_token != 'while':
-            raise TypeError('whileStatement must start with while.')
         self.write_line('<whileStatement>')
-        self.write_token(tok.current_token, tok.current_type)
-
-        # (
-        tok.advance()
-        if tok.current_token != '(':
-            raise TypeError('ifStatement must proceed with (.')
-        self.write_tokn(tok.current_token, tok.current_type)
-
+        self.process('while')
+        self.process('(')
         self.compile_expression()
+        self.process(')')
 
-        # )
-        if tok.current_token != ')':
-            raise TypeError('whileStatement must end with ).')
-        self.write_token(tok.current_token, tok.current_type)
-
-        # {
-        tok.advance()
-        if tok.current_token != '{':
-            raise TypeError('whileStatement requires opening curley bracket.')
-        self.write_token(tok.current_token, tok.current_type)
-
+        # while's body.
+        self.process('{')
         self.compile_statements()
-
-        # }
-        if tok.current_token != '}':
-            raise TypeError('whileStatement requires closig with curley bracket.')
-        self.write_token(tok.current_token, tok.current_type)
+        self.process('}')
         self.write_line('</whileStatement>')
 
     def compile_return(self):
         """
         Compiles a return statement.
         """
-        tok = self.tokenizer
-        if tok.current_token != 'return':
-            raise TypeError('returnStatement must start with return.')
         self.write_line('<returnStatement>')
-        self.write_token(tok.current_token, tok.current_type)
+        self.process('return')
 
-        tok.advance()
-        if tok.current_token != ';':
+        if self.tokenizer.current_token != ';':
             self.compile_expression()
-        else:
-            self.write_token(tok.current_token, tok.current_type)
 
+        self.process(';')
         self.write_line('</returnStatement>')
 
     def compile_expression(self):
         """
         Compiles an expression.
         """
-        tok = self.tokenizer
         self.write('<expression>')
 
-        while tok.current_token not in [')', ';', ',']:
-            tok.compile_term()
-            # Todo - distinguish betwen terms and symbols?
-            tok.advance()
+        while self.tokenizer.current_token not in [')', ';', ',']:
+            if self.tokenizer.current_token in self.ops:
+                self.process(self.tokenizer.current_token)
+            else:
+                self.compile_term()
 
         self.write('</expression>')
 
@@ -362,25 +264,19 @@ class CompilationEngine:
         to distinguish between the possibilities. Any other token is not
         part of this term and should not be advanced over.
         """
-        tok = self.tokenizer
         self.write('<term>')
 
-        current = (tok.current_token, tok.current_type)
-        if current[1] == 'IDENTIFIER':
+        if self.tokenizer.current_type == 'IDENTIFIER':
             # Resolve into a variable, array entry or a subroutine call.
-            self.write_token(current[0], current[1])
+            self.process(self.tokenizer.current_token)
 
-            if '.' in tok.peek():
-                # Soubroutine
-                tok.advance()  # '.'
-                self.write_token(tok.current_token, tok.current_type)
-
-                tok.advance() # Subroutine name.
-                self.write_token(tok.current_token, tok.current_type)
-
-                # Open brackets and call to function
-                tok.advance()
+            # Soubroutine
+            if '.' in self.tokenizer.peek():
+                self.process(self.tokenizer.current_token) # '.'
+                self.process(self.tokenizer.current_token) # Subroutine name.
+                self.process('(')
                 self.compile_subroutine_invoke()
+
         self.write('</term>')
 
     def compile_expression_list(self):
@@ -389,12 +285,21 @@ class CompilationEngine:
         """
         self.write_line('<expressionList>')
 
-        while tok.current_token != ')':
+        while self.tokenizer.current_token != ')':
             self.compile_expression()
-            tok.advance()
 
         self.write_line('</expressionList>')
 
+    def process(self, string):
+        """
+        A helper routine that handles the current token,
+        and advances to get the next token.
+        """
+        if self.tokenizer.current_token != string:
+            raise SyntaxError('Invalid token. Expected: {}'.format(str))
+
+        self.write_token(string, self.tokenizer.current_type)
+        self.tokenizer.advance()
 
     def write_token(self, token, type):
         """
