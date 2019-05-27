@@ -2,14 +2,13 @@ import re
 
 class VMWriter:
     def __init__(self, filename):
-        self.stream = re.sub('.jack$', '.vm', filename)
+        self.filename = re.sub('.jack$', '.vm', filename)
+        self.stream = open(self.filename, 'w')
 
     def write_push(self, segment, index):
-        segment = segment.lower()
         self.write_line('push {} {}'.format(segment, index))
 
     def write_pop(self, segment, index):
-        segment = segment.lower()
         self.write_line('pop {} {}'.format(segment, index))
 
     def write_arithmetic(self, command):
@@ -29,7 +28,7 @@ class VMWriter:
         self.write_line('call {} {}'.format(name, nargs))
 
     def write_function(self, name, nlocals):
-        self.write_line('call {} {}'.format(name, nlocals))
+        self.write_line('function {} {}'.format(name, nlocals))
 
     def write_return(self):
         self.write_line('return')

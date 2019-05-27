@@ -1,18 +1,18 @@
 class SymbolTable:
     def __init__(self, classname):
-        self.classname = classname
+        self.classname = classname.spilt('/')[-1]
 
         self.class_table = {}
         self.subroutine_table = {}
 
         self.counters = {
             class: {
-                'STATIC': 0,
-                'FIELD': 0
+                'static': 0,
+                'field': 0
             },
             subroutine: {
-                'VAR': 0,
-                'ARG': 0
+                'var': 0,
+                'arg': 0
             }
         }
 
@@ -21,10 +21,10 @@ class SymbolTable:
         Resets the subroutine's symbol table.
         """
         self.subroutine_table = {}
-        self.counters['subroutine'] = {}
+        self.counters['subroutine'] = {'var': 0, 'arg': 0}
 
     def define(self, name, type, kind):
-        if kind == 'STATIC' or kind == 'FIELD':
+        if kind == 'static' or kind == 'field':
             self.class_table[name] = {
                 type: type,
                 kind: kind,
@@ -47,7 +47,7 @@ class SymbolTable:
         Returns the number of variables of the given kind already
         defined in the current scope.
         """
-        type = 'subroutine' if kind in ['VAR', 'ARG'] else 'class'
+        type = 'subroutine' if kind in ['var', 'arg'] else 'class'
         return self.counters[type].get(kind)
 
     def kind_of(self, name):
