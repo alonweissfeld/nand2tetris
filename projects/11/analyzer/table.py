@@ -1,16 +1,17 @@
 class SymbolTable:
     def __init__(self, classname):
-        self.classname = classname.spilt('/')[-1]
+        print 'class name:', classname
+        self.classname = classname.split('/')[-1]
 
         self.class_table = {}
         self.subroutine_table = {}
 
         self.counters = {
-            class: {
+            'class': {
                 'static': 0,
                 'field': 0
             },
-            subroutine: {
+            'subroutine': {
                 'var': 0,
                 'arg': 0
             }
@@ -26,18 +27,18 @@ class SymbolTable:
     def define(self, name, type, kind):
         if kind == 'static' or kind == 'field':
             self.class_table[name] = {
-                type: type,
-                kind: kind,
-                index: self.counters['class'].get(kind)
+                'type': type,
+                'kind': kind,
+                'index': self.counters['class'].get(kind)
             }
 
             self.counters['class'][kind] += 1
 
         else:
             self.subroutine_table[name] = {
-                type: type,
-                kind: kind,
-                index: self.counters['subroutine'].get(kind)
+                'type': type,
+                'kind': kind,
+                'index': self.counters['subroutine'].get(kind)
             }
 
             self.counters['subroutine'][kind] += 1
@@ -52,7 +53,8 @@ class SymbolTable:
 
     def kind_of(self, name):
         """
-        Returns the type of the named identifier in the current scope.
+        Returns the kind of the named identifier in the current scope:
+        returns STATIC, FIELD, ARG OR VAR.
         """
         return get_by_hierarchy(name, 'kind')
 

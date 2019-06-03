@@ -6,8 +6,10 @@ from table import SymbolTable
 
 class CompilationEngine:
     """
-    Emits a structured representation of the input source code,
-    wrapped in XML tags.
+    Recursive top-down compilation engine for the Jack langauge.
+    Using a Tokenizer object, this module will process different
+    Jack tokens and compile it to VM code using the VMWriter.
+    While at it, invalid Jack syntax will raise SyntxError.
     """
     def __init__(self, tokenizer):
         """
@@ -21,6 +23,7 @@ class CompilationEngine:
         self.tokenizer = tokenizer
         self.vm_writer = VMWriter(filename)
         self.symbol_table = SymbolTable(filename)
+        self.classname = filename.split('/')[-1]
 
         # Different keywords and operators partition to digest
         # the structure of program.
@@ -29,6 +32,14 @@ class CompilationEngine:
         self.statements = ['let', 'do', 'if', 'while', 'return']
         self.ops = ['+', '-', '*', '/', '&', '|', '<', '>', '=']
         self.unary_ops = ['~', '-']
+
+
+        # Determines the current subroutine in use.
+        self.current_fn_type = None
+        self.current_fn_name = None
+
+        self.if_idx = 0
+        self.while_idx = 0
 
 
     def compile_class(self):
@@ -85,7 +96,8 @@ class CompilationEngine:
         self.symbol_table.start_subroutine()
 
         if kind == 'method':
-            self.symbol_table.define('this', self.symbol_table.classname, 'arg')
+            # The type of 'this' is the class name (for exmaple, 'Point').
+            self.symbol_table.define('this', self.classname, 'arg')
 
         # Parameters list, e.g, (int Ax, int Ay, int Asize)
         self.process('(')
@@ -107,7 +119,7 @@ class CompilationEngine:
             if self.tokenizer.current_token == ',':
                 self.process()
 
-        self.process(';')
+        #self.process(';')
 
     def compile_subroutine_body(self):
         """
@@ -159,14 +171,12 @@ class CompilationEngine:
             if self.tokenizer.current_token == ',':
                 self.process()
 
-        process(';')
+        self.process(';')
 
     def compile_statements(self):
         """
         Compiles a sequence of statements.
         """
-        self.write_line('<statements>')
-
         # Write statements until ending closing bracket of parent subroutine.
         while self.tokenizer.current_token != '}':
             # Explicitly check statement
@@ -179,95 +189,149 @@ class CompilationEngine:
             method = getattr(self, 'compile_' + statement)
             method()
 
-
-        self.write_line('</statements>') # We're done.
-
     def compile_let(self):
         """
         Compiles a let statement.
         """
-        self.write_line('<letStatement>')
         self.process('let')
 
         if self.tokenizer.current_type != 'IDENTIFIER':
-            raise TypeError('Let statement must proceed with an identifier.')
-        self.process(self.tokenizer.current_token)
+            raise SyntaxError('Let statement must proceed with an identifier.')
+        identifier = self.process(self.tokenizer.current_token)
+
+        index = self.get_index(identifier)
+        segment = self.get_kind(identifier)
 
         # Placement might be an array entring.
         if self.tokenizer.current_token == '[':
             self.compile_array_entry()
 
-        self.process('=')
-        self.compile_expression()
+            self.vm_writer.write_push(segment, index)
+            self.vm_writer.write_arithmetic('ADD')
+            self.vm_writer.write_pop('TEMP', 0)
+
+            self.process('=')
+            self.compile_expression()
+
+            self.vm_writer.write_push('TEMP', 0)
+            self.vm_writer.write_pop('POINTER', 1)
+            self.vm_writer.write_pop('THAT', 0)
+        else:
+            # Regular assignment.
+            self.process('=')
+            self.compile_expression()
+
+            self.write_pop(segment, index)
+
         self.process(';')
-        self.write_line('</letStatement>')
+
 
     def compile_do(self):
         """
         Compiles a do statement.
         """
-        self.write_line('<doStatement>')
         self.process('do')
-
-        if '.' in self.tokenizer.peek():
-            self.process(self.tokenizer.current_token) # Class name
-            self.process(self.tokenizer.current_token) # .
-            self.process(self.tokenizer.current_token) # Subroutine name
-        else:
-            self.process(self.tokenizer.current_token) # local routine name
-
         self.compile_subroutine_invoke()
-
+        self.vm_writer.write_pop('TEMP', 0)
         self.process(';') # end of do statement.
-        self.write_line('</doStatement>')
 
     def compile_subroutine_invoke(self):
         """
         Compiles a subroutine invokation.
         """
+        identifier = self.process()
+        args_count = 0
+
+        # Either a static (outer) class funciton or an instance function call.
+        if self.tokenizer.peek() == '.':
+            self.process('.')
+            subroutine_name = self.process()
+
+            inst_type = self.symbol_table.type_of(identifier)
+            if inst_type:
+                # It's an instance.
+                inst_kind = self.get_kind(identifier)
+                inst_indx = self.get_index(identifier)
+
+                self.vm_writer.write_push(inst_kind, inst_indx)
+                fn_name = '{}.{}'.format(inst_type, subroutine_name)
+
+                args_count += 1 # Pass 'this' as an argument.
+            else: # Static function of a class.
+                fn_name = '{}.{}'.format(identifier, subroutine_name)
+
+        else: # Local method call.
+            fn_name = '{}.{}'.format(self.classname, identifier)
+            args_count += 1 # Pass 'this' as an argument.
+            self.vm_writer.write_push('POINTER', 0)
+
         self.process('(')
-        self.compile_expression_list() # Subroutine expressions list.
+        args_count += self.compile_expression_list()
         self.process(')')
+        self.vm_writer.write_call(fn_name, args_count)
 
     def compile_if(self):
         """
         Compiles an if statement, possibly with a trailing else clause.
         """
-        self.write_line('<ifStatement>')
         self.process('if')
         self.process('(')
         self.compile_expression() # E.g., x > 2
+        self.vm_writer.write_arithmetic('NOT')
         self.process(')') # End of if condition statement.
 
         # if statement body
         self.process('{')
+
+        idx = self.if_idx
+        self.if_idx += 1
+        label_false = '{}.IF_FALSE.{}'.format(self.current_fn_name, idx)
+        label_proceed = '{}.{}'.format(self.current_fn_name, idx)
+
+        self.vm_writer.write_if(label_false)
+
         self.compile_statements()
+
+        self.vm_writer.write_goto(label_proceed)
         self.process('}')
 
-        # Check if there's proceeding 'else'
+        # Lables statements.
+        self.vm_writer.write_line(label_false)
         if self.tokenizer.current_token == 'else':
+            # We have a proceeding else.
             self.process('else')
             self.process('{')
             self.compile_statements()
             self.process('}')
 
-        self.write_line('</ifStatement>')
+        self.vm_writer.write_line(label_proceed)
 
     def compile_while(self):
         """
         Compiles a while statement.
         """
-        self.write_line('<whileStatement>')
         self.process('while')
         self.process('(')
+
+        fn_name = self.current_fn_name
+        idx = self.while_idx
+        self.while_idx += 1
+
+        while_start_label = '{}.while_start.{}'.format(fn_name, idx)
+        while_end_label = '{}.while_end.{}'.format(fn_name, idx)
+
+        self.vm_writer.write_label(while_start_label)
         self.compile_expression()
+        self.vm_writer.write_arithmetic('NOT')
         self.process(')')
 
         # while's body.
         self.process('{')
+        self.vm_writer.write_if(while_end_label)
         self.compile_statements()
-        self.process('}')
-        self.write_line('</whileStatement>')
+        self.vm_writer.write_goto(while_start_label)
+        self.vm_writer.write_label(while_end_label)
+        self.process('}') # We're done
 
     def compile_return(self):
         """
@@ -396,11 +460,18 @@ class CompilationEngine:
         line = '<{}> {} </{}>'.format(type, token, type)
         self.write_line(line)
 
-    def write_line(self, line):
-        """
-        Write any given text line to the xml.
-        """
-        self.xml.write(line + '\n')
+    def get_kind(self, name):
+        segment = self.symbol_table.kind_of(name)
+
+        if segment == 'FIELD':
+            return 'THIS'
+        if segment == 'VAR':
+            return 'LOCAL'
+
+        return segment
+
+    def get_index(self, name):
+        return self.symbol_table.index_of(name)
 
     def close(self):
         """
