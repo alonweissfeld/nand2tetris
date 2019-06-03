@@ -33,7 +33,6 @@ class CompilationEngine:
         self.ops = ['+', '-', '*', '/', '&', '|', '<', '>', '=']
         self.unary_ops = ['~', '-']
 
-
         # Determines the current subroutine in use.
         self.current_fn_type = None
         self.current_fn_name = None
@@ -41,6 +40,20 @@ class CompilationEngine:
         self.if_idx = 0
         self.while_idx = 0
 
+        self.verbal_arithemtic = {
+            '>': 'GT',
+            '<': 'LT',
+            '=': 'EQ',
+            '|': 'OR',
+            '-': 'SUB',
+            '+': 'ADD',
+            '&': 'AND'
+        }
+
+        self.verbal_unary = {
+            '~': 'NOT',
+            '-': 'NEG'
+        }
 
     def compile_class(self):
         """
@@ -337,30 +350,34 @@ class CompilationEngine:
         """
         Compiles a return statement.
         """
-        self.write_line('<returnStatement>')
         self.process('return')
 
         if self.tokenizer.current_token != ';':
             self.compile_expression()
+        else: # Return VOID.
+            self.vm_writer.write_push('CONSTANT', 0)
 
+        self.vm_writer.write_return()
         self.process(';')
-        self.write_line('</returnStatement>')
 
     def compile_expression(self):
         """
         Compiles an expression.
         """
-        self.write_line('<expression>')
+        self.compile_term()
 
-        previous_was_term = False
-        while self.tokenizer.current_token not in [')', ']',';', ',']:
-            if self.tokenizer.current_token in self.ops and previous_was_term:
-                self.process(self.tokenizer.current_token)
+        while self.tokenizer.peek() in self.ops:
+            op = self.process()
+            self.compile_term() # Push is done by compile_term
+
+            # Explicitly use Math.multiply or Math.divide.
+            if op == '*':
+                self.vm_writer.write_call('Math.multiply', 2)
+            if op == '/':
+                self.vm_writer.write_call('Math.divide', 2)
             else:
-                self.compile_term()
-                previous_was_term = True
-
-        self.write_line('</expression>')
+                name = self.verbal_arithemtic.get(op)
+                self.vm_writer.write_arithmetic(name)
 
     def compile_term(self):
         """
@@ -370,53 +387,86 @@ class CompilationEngine:
         to distinguish between the possibilities. Any other token is not
         part of this term and should not be advanced over.
         """
-        self.write_line('<term>')
 
-        if self.tokenizer.current_type == 'IDENTIFIER':
-            # Resolve into a variable or local routine.
-            self.process(self.tokenizer.current_token)
+        current_token = self.process()
+        token_type = self.get_current_type()
 
-            # Resolves into array entry.
-            if self.tokenizer.current_token == '[':
-                self.compile_array_entry()
-
-            # Resolves into a static soubroutine call.
-            elif self.tokenizer.current_token == '.':
-                self.process(self.tokenizer.current_token) # '.'
-                self.process(self.tokenizer.current_token) # Subroutine name.
-                self.compile_subroutine_invoke()
-
-        elif self.tokenizer.current_token in self.unary_ops:
-            self.process(self.tokenizer.current_token)
-            self.compile_term()
-
-        # Recurssive expression.
-        elif self.tokenizer.current_token == '(':
-            self.process(self.tokenizer.current_token)
+        if current_token == '(':
             self.compile_expression()
             self.process(')')
+        elif self.tokenizer.peek() == '[':
+            arr_identifier = current_token
+            self.compile_array_entry()
+
+            index = self.get_index(arr_identifier)
+            segment = self.get_kind(arr_identifier)
+            self.vm_writer.write_push(segment, index)
+            self.vm_writer.write_arithmetic('ADD')
+            self.vm_writer.write_pop('POINTER', 1)
+            self.vm_writer.write_push('THAT', 0)
+
+        elif self.tokenizer.peek() in ['.', '(']:
+            self.compile_subroutine_invoke()
+
+        elif current_token in self.unary_ops:
+            self.compile_term()
+            name = self.verbal_unary.get(current_token)
+            self.vm_writer.write_arithmetic(name)
+
+        elif token_type == 'INT_CONST':
+            self.vm_writer.write_push('CONSTANT', self.process())
+        elif token_type == 'STRING_CONST':
+            self.compile_string()
+        elif token_type == 'KEYWORD':
+            self.compile_keyword()
 
         else:
-            self.process(self.tokenizer.current_token)
+            index = self.get_index(current_token)
+            segment = self.get_kind(current_token)
+            self.vm_writer.write_push(segment, index)
 
+    def compile_string(self):
+        current_token = self.tokenizer.current_token
+        self.vm_writer.write_push('CONSTANT', len(current_token))
+        self.vm_writer.write_call('String.new', 1)
 
-        self.write_line('</term>')
+        # String assignments are handled using a series of calls
+        # to String.appendChar(c), when c is the integer representing
+        # unicode code point.
+        for c in current_token:
+            self.vm_writer.write_push('CONSTANT', ord(char))
+            self.vm_writer.write_call('String.appendChar', 2)
+
+    def compile_keyword(self):
+        current_token = self.tokenizer.current_token
+        if current_token == 'this':
+            self.vm_writer.write_push('POINTER', 0)
+            return
+
+        if current_token == 'true':
+            self.vm_writer.write_push('CONSTANT', -1)
+            return
+
+        # null or false.
+        self.vm_writer.write_push('CONSTANT', 0)
+
+    def get_current_type(self):
+        return self.tokenizer.current_type
 
     def compile_expression_list(self):
         """
-        Compiles a (possibly empty) comma- separated list of expressions.
+        Compiles a (possibly empty) comma- separated list of expressions
+        and returns the number of arguments in this expression list.
         """
-        self.write_line('<expressionList>')
-
+        args_count = 0
         while self.tokenizer.current_token != ')':
+            args_count += 1
             self.compile_expression()
 
-            if self.tokenizer.current_token == ')':
-                break
+            if self.tokenizer.current_token == ',':
+                process(',')
 
-            self.process(',') # next expression
-
-        self.write_line('</expressionList>')
+        return args_count
 
     def process(self, string=None):
         """
@@ -443,22 +493,12 @@ class CompilationEngine:
         self.compile_expression()
         self.process(']')
 
-    def write_token(self, token, type):
-        """
-        Helper method to write a given token as an xml tag,
-        defined by the given type.
-        """
-        # Support standart XML representation.
-        token = token.replace('&', '&amp;')
-        token = token.replace('>', '&gt;')
-        token = token.replace('<', '&lt;')
-
-        type = type.lower()
-        type = type.replace('int_const', 'integerConstant')
-        type = type.replace('string_const', 'stringConstant')
-
-        line = '<{}> {} </{}>'.format(type, token, type)
-        self.write_line(line)
+    def is_int(self, input):
+        try:
+            input = int(input)
+            return True
+        except ValueError:
+            return None
 
     def get_kind(self, name):
         segment = self.symbol_table.kind_of(name)
