@@ -297,7 +297,7 @@ class CompilationEngine:
 
         idx = self.if_idx
         self.if_idx += 1
-        label_false = '{}.IF_FALSE.{}'.format(self.current_fn_name, idx)
+        label_false = '{}.if_false.{}'.format(self.current_fn_name, idx)
         label_proceed = '{}.{}'.format(self.current_fn_name, idx)
 
         self.vm_writer.write_if(label_false)
@@ -308,7 +308,7 @@ class CompilationEngine:
         self.process('}')
 
         # Lables statements.
-        self.vm_writer.write_line(label_false)
+        self.vm_writer.write_label(label_false)
         if self.tokenizer.current_token == 'else':
             # We have a proceeding else.
             self.process('else')
@@ -316,7 +316,7 @@ class CompilationEngine:
             self.compile_statements()
             self.process('}')
 
-        self.vm_writer.write_line(label_proceed)
+        self.vm_writer.write_label(label_proceed)
 
     def compile_while(self):
         """
@@ -528,6 +528,8 @@ class CompilationEngine:
             return 'this'
         if segment == 'var':
             return 'local'
+        if segment == 'arg':
+            return 'argument'
 
         return segment
 
