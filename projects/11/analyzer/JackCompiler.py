@@ -2,6 +2,7 @@ import re
 import os
 import sys
 import glob
+import inspect
 
 from tokenizer import JackTokenizer
 from compiler import CompilationEngine
@@ -36,26 +37,27 @@ def main():
         # We're given a single Jack file.
         files = [path]
 
-    try:
-        for filename in files:
-            tok = JackTokenizer(filename)
-            engine = CompilationEngine(tok)
+    # try:
+    for filename in files:
+        tok = JackTokenizer(filename)
+        engine = CompilationEngine(tok)
 
-            # Since the first token in a valid Jack file must be class,
-            # the parsing process starts by calling the CompileClass routine.
-            engine.compile_class()
+        # Since the first token in a valid Jack file must be class,
+        # the parsing process starts by calling the CompileClass routine.
+        engine.compile_class()
 
-            # We're done, close the current engine for the current file.
-            engine.close()
+        # We're done, close the current engine for the current file.
+        engine.close()
 
-        print "Completed compilation for {}".format(path)
+    print "Completed compilation for {}".format(path)
 
-    except IOError, err:
-        print "Encountered an I/O Error:", str(err)
-    except ValueError, err:
-        print "Encountered a Value Error:", str(err)
-    except TypeError, err:
-        print "Encountered a Type Error:", str(err)
+    # except IOError, err:
+    #     print "Encountered an I/O Error:", str(err)
+    # except ValueError, err:
+    #     print "Encountered a Value Error:", str(err)
+    # except TypeError, err:
+    #     caller = inspect.stack()[1][3]
+    #     print "Encountered a Type Error: {}, from {}", str(err), caller
 
 
 if __name__ == '__main__':

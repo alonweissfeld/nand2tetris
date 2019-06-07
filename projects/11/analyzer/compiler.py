@@ -195,7 +195,8 @@ class CompilationEngine:
         while self.tokenizer.current_token != '}':
             # Explicitly check statement
             statement = self.get_token()
-            print 'NEW STATEMENT:', statement
+            print "current statement:    ", statement
+            # self.vm_writer.write_line('// '+ self.get_full_statement(statement))
             if statement not in self.statements:
                 s = ', '.join(self.statements)
                 raise SyntaxError('Statement should start with one of ' + s)
@@ -270,6 +271,7 @@ class CompilationEngine:
                 args_count += 1 # Pass 'this' as an argument.
             else: # Static function of a class.
                 fn_name = '{}.{}'.format(identifier, subroutine_name)
+                print "FUNCTION NAME:", fn_name
 
         else: # Local method call.
             fn_name = '{}.{}'.format(self.classname, identifier)
@@ -367,7 +369,7 @@ class CompilationEngine:
             # Explicitly use Math.multiply or Math.divide.
             if op == '*':
                 self.vm_writer.write_call('Math.multiply', 2)
-            if op == '/':
+            elif op == '/':
                 self.vm_writer.write_call('Math.divide', 2)
             else:
                 name = self.verbal_arithemtic.get(op)
@@ -383,9 +385,11 @@ class CompilationEngine:
         """
 
         current_token = self.tokenizer.current_token
+        # self.vm_writer.write_line("// " + str(current_token))
         token_type = self.get_current_type()
 
         if current_token == '(':
+            self.process('(')
             self.compile_expression()
             self.process(')')
         elif self.tokenizer.peek() == '[':
@@ -467,7 +471,7 @@ class CompilationEngine:
             self.compile_expression()
 
             if self.tokenizer.current_token == ',':
-                process(',')
+                self.process(',')
 
         return args_count
 
@@ -505,6 +509,8 @@ class CompilationEngine:
         A helper routine to compile an array entry.
         """
         self.process('[')
+        # self.vm_writer.write_line('// ' + str(self.tokenizer.current_token))
+        # self.vm_writer.write_line('// ' + str(self.peek()))
         self.compile_expression()
         self.process(']')
 
@@ -533,6 +539,19 @@ class CompilationEngine:
 
     def print_current(self):
         print 'CURRENT TOKEN: ', self.tokenizer.current_token
+
+    def get_full_statement(self, statement):
+        tokens = [statement]
+
+        idx = 0
+        while True:
+            curr = self.tokenizer.tokens[idx]
+            if curr == ';':
+                break
+            tokens.append(str(curr))
+            idx += 1
+
+        return ' '.join(tokens)
 
     def close(self):
         """

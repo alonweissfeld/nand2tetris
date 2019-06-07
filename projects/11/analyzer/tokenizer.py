@@ -252,6 +252,6 @@ class JackTokenizer:
             token = self.current_token
             if self.current_type == 'STRING_CONST':
                 token = '"{}"'.format(token)
-            tokens.append(token)
+            tokens.append(str(token))
 
         self.tokens = deque(tokens)

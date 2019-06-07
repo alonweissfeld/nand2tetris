@@ -19,6 +19,7 @@ class VMWriter:
 
     def write_arithmetic(self, command):
         """Writes a VM arithemtic-logical command."""
+        print 'command:', command
         self.write_line(command.lower())
 
     def write_label(self, label):
