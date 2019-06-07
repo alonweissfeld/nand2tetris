@@ -107,7 +107,7 @@ class JackTokenizer:
         Gets the next token from the input, and makes it the current token.
         While at it, check for further tokens down the road.
         """
-        if not self.has_more_tokens:
+        if not self.has_more_tokens():
             print "No more tokens."
             return
 
@@ -138,7 +138,7 @@ class JackTokenizer:
 
         # Int constants.
         int_val = self.int_val()
-        if (int_val):
+        if int_val is not None: # Integer might be zero.
             self.current_token = int_val
             return 'INT_CONST'
 
@@ -207,6 +207,8 @@ class JackTokenizer:
                 integer = token[:idx]
                 self.tokens.appendleft(token[idx:])
                 break
+            else:
+                integer = int(token[:idx + 1])
         return integer
 
     def string_val(self):
@@ -232,6 +234,24 @@ class JackTokenizer:
 
     def peek(self):
         """
-        Peek at leftmost item.
+        Peek at leftmost item in the tokens deque.
         """
         return self.tokens[0]
+
+    def seperate_all(self):
+        """
+        Since some of our tokens are further seperated only when advancing
+        (for example, we may currently have a token like 'Keyboard.readInt('),
+        this method goes over all tokens and preforms the complete seperation.
+        This can help in the compiling prorcess since we're validating
+        specific tokens throughout the process.
+        """
+        tokens = []
+        while self.has_more_tokens():
+            self.advance()
+            token = self.current_token
+            if self.current_type == 'STRING_CONST':
+                token = '"{}"'.format(token)
+            tokens.append(token)
+
+        self.tokens = deque(tokens)

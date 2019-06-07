@@ -23,7 +23,9 @@ class CompilationEngine:
         self.tokenizer = tokenizer
         self.vm_writer = VMWriter(filename)
         self.symbol_table = SymbolTable(filename)
-        self.classname = filename.split('/')[-1]
+        self.classname = self.get_classname(filename)
+
+        self.tokenizer.seperate_all()
 
         # Different keywords and operators partition to digest
         # the structure of program.
@@ -62,9 +64,11 @@ class CompilationEngine:
         if not self.tokenizer.has_more_tokens():
             raise SyntaxError('No tokens available to compile.')
 
+        # Advance to the first token.
         self.tokenizer.advance()
+
         self.process('class')
-        self.process(self.tokenizer.current_token) # class name
+        self.get_token() # class name
         self.process('{')
 
         # Reached a variable declaration or a subroutine,
@@ -84,8 +88,8 @@ class CompilationEngine:
         """
         Compiles a static variable declaration, or a field declaration.
         """
-        kind = self.process()
-        type = self.process()
+        kind = self.get_token()
+        type = self.get_token()
 
         # Iterate tokens until reaching a command break (';').
         while self.tokenizer.current_token != ';':
@@ -101,9 +105,9 @@ class CompilationEngine:
         """
         Compiles a complete method, function, or constructor.
         """
-        kind = self.process() # static function, method or constructor.
-        self.current_fn_type = self.process() # void or type.
-        self.current_fn_name = self.process() # name of the subroutine.
+        kind = self.get_token() # static function, method or constructor.
+        self.current_fn_type = self.get_token() # void or type.
+        self.current_fn_name = self.get_token() # name of the subroutine.
 
         # Reset symbol table for current scope.
         self.symbol_table.start_subroutine()
@@ -125,14 +129,12 @@ class CompilationEngine:
         Compiles a (possibly empty) parameter list.
         """
         while self.tokenizer.current_token != ')':
-            type = self.process()
-            name = self.process()
+            type = self.get_token()
+            name = self.get_token()
             self.symbol_table.define(name, type, 'arg')
 
             if self.tokenizer.current_token == ',':
                 self.process()
-
-        #self.process(';')
 
     def compile_subroutine_body(self):
         """
@@ -174,15 +176,14 @@ class CompilationEngine:
         """
         Compiles a var declaration.
         """
-        kind = self.process('var') # TODO: check if only var?
-        type = self.process()
+        kind = self.get_token()
+        type = self.get_token()
 
         while self.tokenizer.current_token != ';':
-            name = self.process()
-
+            name = self.get_token()
             self.symbol_table.define(name, type, kind)
             if self.tokenizer.current_token == ',':
-                self.process()
+                self.process(',')
 
         self.process(';')
 
@@ -193,7 +194,8 @@ class CompilationEngine:
         # Write statements until ending closing bracket of parent subroutine.
         while self.tokenizer.current_token != '}':
             # Explicitly check statement
-            statement = self.tokenizer.current_token
+            statement = self.get_token()
+            print 'NEW STATEMENT:', statement
             if statement not in self.statements:
                 s = ', '.join(self.statements)
                 raise SyntaxError('Statement should start with one of ' + s)
@@ -206,12 +208,10 @@ class CompilationEngine:
         """
         Compiles a let statement.
         """
-        self.process('let')
-
         if self.tokenizer.current_type != 'IDENTIFIER':
             raise SyntaxError('Let statement must proceed with an identifier.')
-        identifier = self.process(self.tokenizer.current_token)
 
+        identifier = self.get_token()
         index = self.get_index(identifier)
         segment = self.get_kind(identifier)
 
@@ -233,8 +233,7 @@ class CompilationEngine:
             # Regular assignment.
             self.process('=')
             self.compile_expression()
-
-            self.write_pop(segment, index)
+            self.vm_writer.write_pop(segment, index)
 
         self.process(';')
 
@@ -243,7 +242,6 @@ class CompilationEngine:
         """
         Compiles a do statement.
         """
-        self.process('do')
         self.compile_subroutine_invoke()
         self.vm_writer.write_pop('TEMP', 0)
         self.process(';') # end of do statement.
@@ -252,13 +250,13 @@ class CompilationEngine:
         """
         Compiles a subroutine invokation.
         """
-        identifier = self.process()
+        identifier = self.get_token()
         args_count = 0
 
         # Either a static (outer) class funciton or an instance function call.
-        if self.tokenizer.peek() == '.':
+        if self.tokenizer.current_token == '.':
             self.process('.')
-            subroutine_name = self.process()
+            subroutine_name = self.get_token()
 
             inst_type = self.symbol_table.type_of(identifier)
             if inst_type:
@@ -287,7 +285,6 @@ class CompilationEngine:
         """
         Compiles an if statement, possibly with a trailing else clause.
         """
-        self.process('if')
         self.process('(')
         self.compile_expression() # E.g., x > 2
         self.vm_writer.write_arithmetic('NOT')
@@ -323,7 +320,6 @@ class CompilationEngine:
         """
         Compiles a while statement.
         """
-        self.process('while')
         self.process('(')
 
         fn_name = self.current_fn_name
@@ -350,8 +346,6 @@ class CompilationEngine:
         """
         Compiles a return statement.
         """
-        self.process('return')
-
         if self.tokenizer.current_token != ';':
             self.compile_expression()
         else: # Return VOID.
@@ -366,8 +360,8 @@ class CompilationEngine:
         """
         self.compile_term()
 
-        while self.tokenizer.peek() in self.ops:
-            op = self.process()
+        while self.tokenizer.current_token in self.ops:
+            op = self.get_token()
             self.compile_term() # Push is done by compile_term
 
             # Explicitly use Math.multiply or Math.divide.
@@ -388,14 +382,14 @@ class CompilationEngine:
         part of this term and should not be advanced over.
         """
 
-        current_token = self.process()
+        current_token = self.tokenizer.current_token
         token_type = self.get_current_type()
 
         if current_token == '(':
             self.compile_expression()
             self.process(')')
         elif self.tokenizer.peek() == '[':
-            arr_identifier = current_token
+            arr_identifier = self.get_token()
             self.compile_array_entry()
 
             index = self.get_index(arr_identifier)
@@ -405,7 +399,7 @@ class CompilationEngine:
             self.vm_writer.write_pop('POINTER', 1)
             self.vm_writer.write_push('THAT', 0)
 
-        elif self.tokenizer.peek() in ['.', '(']:
+        elif self.peek() in ['.', '(']:
             self.compile_subroutine_invoke()
 
         elif current_token in self.unary_ops:
@@ -414,18 +408,18 @@ class CompilationEngine:
             self.vm_writer.write_arithmetic(name)
 
         elif token_type == 'INT_CONST':
-            self.vm_writer.write_push('CONSTANT', self.process())
+            self._compile_integer()
         elif token_type == 'STRING_CONST':
-            self.compile_string()
+            self._compile_string()
         elif token_type == 'KEYWORD':
-            self.compile_keyword()
-
+            self._compile_keyword()
         else:
-            index = self.get_index(current_token)
-            segment = self.get_kind(current_token)
-            self.vm_writer.write_push(segment, index)
+            self._compile_identifier()
 
-    def compile_string(self):
+    def _compile_integer(self):
+        self.vm_writer.write_push('CONSTANT', self.get_token())
+
+    def _compile_string(self):
         current_token = self.tokenizer.current_token
         self.vm_writer.write_push('CONSTANT', len(current_token))
         self.vm_writer.write_call('String.new', 1)
@@ -434,10 +428,12 @@ class CompilationEngine:
         # to String.appendChar(c), when c is the integer representing
         # unicode code point.
         for c in current_token:
-            self.vm_writer.write_push('CONSTANT', ord(char))
+            self.vm_writer.write_push('CONSTANT', ord(c))
             self.vm_writer.write_call('String.appendChar', 2)
 
-    def compile_keyword(self):
+        self.process() # Finished compiling string.
+
+    def _compile_keyword(self):
         current_token = self.tokenizer.current_token
         if current_token == 'this':
             self.vm_writer.write_push('POINTER', 0)
@@ -449,6 +445,13 @@ class CompilationEngine:
 
         # null or false.
         self.vm_writer.write_push('CONSTANT', 0)
+        self.process()  # Finished compiling keyword.
+
+    def _compile_identifier(self):
+        current_token = self.get_token()
+        index = self.get_index(current_token)
+        segment = self.get_kind(current_token)
+        self.vm_writer.write_push(segment, index)
 
     def get_current_type(self):
         return self.tokenizer.current_type
@@ -470,20 +473,32 @@ class CompilationEngine:
 
     def process(self, string=None):
         """
-        A helper routine that handles the current token,
+        A helper routine that validates the current token,
         and advances to get the next token.
         """
+
         if string and self.tokenizer.current_token != string:
             caller = inspect.stack()[1][3]
             msg = 'Invalid token found in {}, expected: {}'.format(caller, string)
             raise SyntaxError(msg)
 
-        current = self.tokenizer.current_token
+        if self.tokenizer.has_more_tokens():
+            self.tokenizer.advance()
+
+    def get_token(self):
+        """
+        Helper method to get the current token and advance
+        to the next one.
+        """
+        token = self.tokenizer.current_token
 
         if self.tokenizer.has_more_tokens():
             self.tokenizer.advance()
 
-        return current
+        return token
+
+    def peek(self):
+        return self.tokenizer.peek()
 
     def compile_array_entry(self):
         """
@@ -502,19 +517,25 @@ class CompilationEngine:
 
     def get_kind(self, name):
         segment = self.symbol_table.kind_of(name)
-
-        if segment == 'FIELD':
-            return 'THIS'
-        if segment == 'VAR':
-            return 'LOCAL'
+        segment = segment.lower()
+        if segment == 'field':
+            return 'this'
+        if segment == 'var':
+            return 'local'
 
         return segment
 
     def get_index(self, name):
         return self.symbol_table.index_of(name)
 
+    def get_classname(self, filename):
+        return filename.split('/')[-1].split('.')[0]
+
+    def print_current(self):
+        print 'CURRENT TOKEN: ', self.tokenizer.current_token
+
     def close(self):
         """
-        Closes this stream.
+        Closes the vm stream.
         """
-        self.xml.close()
+        self.vm_writer.close()

@@ -1,6 +1,5 @@
 class SymbolTable:
     def __init__(self, classname):
-        print 'class name:', classname
         self.classname = classname.split('/')[-1]
 
         self.class_table = {}
@@ -56,19 +55,19 @@ class SymbolTable:
         Returns the kind of the named identifier in the current scope:
         returns STATIC, FIELD, ARG OR VAR.
         """
-        return get_by_hierarchy(name, 'kind')
+        return self.get_by_hierarchy(name, 'kind')
 
     def type_of(self, name):
         """
         Returns the type of the named identifier in the current scope.
         """
-        return get_by_hierarchy(name, 'type')
+        return self.get_by_hierarchy(name, 'type')
 
     def index_of(self, name):
         """
         Returns the index assigned to the named identifier.
         """
-        return get_by_hierarchy(name, 'index')
+        return self.get_by_hierarchy(name, 'index')
 
     def get_by_hierarchy(self, name, attr):
         """
@@ -83,3 +82,11 @@ class SymbolTable:
             return self.class_table[name].get(attr)
 
         return None
+
+    def __str__(self):
+        result = {
+            'class_table': self.class_table,
+            'subroutine_table': self.subroutine_table,
+            'counters': self.counters
+        }
+        return str(result)

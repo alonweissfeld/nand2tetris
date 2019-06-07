@@ -11,17 +11,15 @@ class VMWriter:
 
     def write_push(self, segment, index):
         """Writes a VM push command."""
-        self.write_line('push {} {}'.format(segment, index))
+        self.write_line('push {} {}'.format(segment.lower(), index))
 
     def write_pop(self, segment, index):
         """Writes a VM pop command."""
-        segment = segment.lower()
-        self.write_line('pop {} {}'.format(segment, index))
+        self.write_line('pop {} {}'.format(segment.lower(), index))
 
     def write_arithmetic(self, command):
         """Writes a VM arithemtic-logical command."""
-        command = command.lower()
-        self.write_line(command)
+        self.write_line(command.lower())
 
     def write_label(self, label):
         """Writes a VM label command."""
