@@ -195,7 +195,7 @@ class CompilationEngine:
         while self.tokenizer.current_token != '}':
             # Explicitly check statement
             statement = self.get_token()
-            print "current statement:    ", statement
+            # print "current statement:    ", statement
             # self.vm_writer.write_line('// '+ self.get_full_statement(statement))
             if statement not in self.statements:
                 s = ', '.join(self.statements)
@@ -281,6 +281,7 @@ class CompilationEngine:
         self.process('(')
         args_count += self.compile_expression_list()
         self.process(')')
+        print 'fn_name', fn_name
         self.vm_writer.write_call(fn_name, args_count)
 
     def compile_if(self):
@@ -388,6 +389,8 @@ class CompilationEngine:
         # self.vm_writer.write_line("// " + str(current_token))
         token_type = self.get_current_type()
 
+        self.print_current()
+
         if current_token == '(':
             self.process('(')
             self.compile_expression()
@@ -403,13 +406,14 @@ class CompilationEngine:
             self.vm_writer.write_pop('POINTER', 1)
             self.vm_writer.write_push('THAT', 0)
 
+        elif current_token in self.unary_ops:
+            unary_op = self.get_token()
+            self.compile_term()
+            name = self.verbal_unary.get(unary_op)
+            self.vm_writer.write_arithmetic(name)
+
         elif self.peek() in ['.', '(']:
             self.compile_subroutine_invoke()
-
-        elif current_token in self.unary_ops:
-            self.compile_term()
-            name = self.verbal_unary.get(current_token)
-            self.vm_writer.write_arithmetic(name)
 
         elif token_type == 'INT_CONST':
             self._compile_integer()
@@ -421,7 +425,11 @@ class CompilationEngine:
             self._compile_identifier()
 
     def _compile_integer(self):
-        self.vm_writer.write_push('CONSTANT', self.get_token())
+        token = self.get_token()
+        self.vm_writer.write_push('CONSTANT', abs(token))
+        if token < 0:
+            self.vm_writer.write_arithmetic('NEG')
+
 
     def _compile_string(self):
         current_token = self.tokenizer.current_token
@@ -438,18 +446,18 @@ class CompilationEngine:
         self.process() # Finished compiling string.
 
     def _compile_keyword(self):
-        current_token = self.tokenizer.current_token
+        current_token = self.get_token()
         if current_token == 'this':
             self.vm_writer.write_push('POINTER', 0)
             return
 
         if current_token == 'true':
-            self.vm_writer.write_push('CONSTANT', -1)
+            self.vm_writer.write_push('CONSTANT', 1)
+            self.vm_writer.write_arithmetic('NEG')
             return
 
         # null or false.
         self.vm_writer.write_push('CONSTANT', 0)
-        self.process()  # Finished compiling keyword.
 
     def _compile_identifier(self):
         current_token = self.get_token()

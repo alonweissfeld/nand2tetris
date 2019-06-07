@@ -122,11 +122,6 @@ class JackTokenizer:
         """
         token = self.current_token
 
-        # Symbols.
-        if token[0] in self.symbols:
-            self.current_token = self.symbol()
-            return 'SYMBOL'
-
         # String constans.
         if token[0] == '"':
             self.current_token = self.string_val()
@@ -141,6 +136,11 @@ class JackTokenizer:
         if int_val is not None: # Integer might be zero.
             self.current_token = int_val
             return 'INT_CONST'
+
+        # Symbols.
+        if token[0] in self.symbols:
+            self.current_token = self.symbol()
+            return 'SYMBOL'
 
         # Identifiers.
         self.current_token = self.identifier()
@@ -196,7 +196,13 @@ class JackTokenizer:
         Returns the integer value of the current token.
         """
         token = self.current_token
-        if not token[0].isdigit():
+
+        sign = None
+        if token[0] == '-':
+            sign = True
+            token = token[1:]
+
+        if not token or not token[0].isdigit():
             return None
 
         # We have a digit token, potentially, but we need
@@ -204,11 +210,14 @@ class JackTokenizer:
         integer = None
         for idx, el in enumerate(token):
             if not el.isdigit() or el in self.symbols:
-                integer = token[:idx]
+                integer = int(token[:idx])
                 self.tokens.appendleft(token[idx:])
                 break
             else:
                 integer = int(token[:idx + 1])
+
+        if sign:
+            integer = -1 * integer
         return integer
 
     def string_val(self):
