@@ -93,7 +93,7 @@ class CompilationEngine:
 
         # Iterate tokens until reaching a command break (';').
         while self.tokenizer.current_token != ';':
-            name = self.process()
+            name = self.get_token()
             self.symbol_table.define(name, type, kind)
 
             if self.tokenizer.current_token == ',':
@@ -105,14 +105,14 @@ class CompilationEngine:
         """
         Compiles a complete method, function, or constructor.
         """
-        kind = self.get_token() # static function, method or constructor.
-        self.current_fn_type = self.get_token() # void or type.
+        self.current_fn_type = self.get_token() # static function, method or constructor.
+        self.current_fn_return = self.get_token() # void or type.
         self.current_fn_name = self.get_token() # name of the subroutine.
 
         # Reset symbol table for current scope.
         self.symbol_table.start_subroutine()
 
-        if kind == 'method':
+        if self.current_fn_type == 'method':
             # The type of 'this' is the class name (for exmaple, 'Point').
             self.symbol_table.define('this', self.classname, 'arg')
 
@@ -195,7 +195,6 @@ class CompilationEngine:
         while self.tokenizer.current_token != '}':
             # Explicitly check statement
             statement = self.get_token()
-            # print "current statement:    ", statement
             # self.vm_writer.write_line('// '+ self.get_full_statement(statement))
             if statement not in self.statements:
                 s = ', '.join(self.statements)
@@ -271,7 +270,6 @@ class CompilationEngine:
                 args_count += 1 # Pass 'this' as an argument.
             else: # Static function of a class.
                 fn_name = '{}.{}'.format(identifier, subroutine_name)
-                print "FUNCTION NAME:", fn_name
 
         else: # Local method call.
             fn_name = '{}.{}'.format(self.classname, identifier)
@@ -281,7 +279,6 @@ class CompilationEngine:
         self.process('(')
         args_count += self.compile_expression_list()
         self.process(')')
-        print 'fn_name', fn_name
         self.vm_writer.write_call(fn_name, args_count)
 
     def compile_if(self):
@@ -386,10 +383,7 @@ class CompilationEngine:
         """
 
         current_token = self.tokenizer.current_token
-        # self.vm_writer.write_line("// " + str(current_token))
         token_type = self.get_current_type()
-
-        self.print_current()
 
         if current_token == '(':
             self.process('(')
@@ -546,9 +540,6 @@ class CompilationEngine:
 
     def get_classname(self, filename):
         return filename.split('/')[-1].split('.')[0]
-
-    def print_current(self):
-        print 'CURRENT TOKEN: ', self.tokenizer.current_token
 
     def get_full_statement(self, statement):
         tokens = [statement]
