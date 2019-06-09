@@ -1,5 +1,4 @@
 import re
-import inspect
 
 from writer import VMWriter
 from table import SymbolTable
@@ -9,7 +8,7 @@ class CompilationEngine:
     Recursive top-down compilation engine for the Jack langauge.
     Using a Tokenizer object, this module will process different
     Jack tokens and compile it to VM code using the VMWriter.
-    While at it, invalid Jack syntax will raise SyntxError.
+    While at it, invalid Jack syntax will raise SyntaxError.
     """
     def __init__(self, tokenizer):
         """
@@ -193,14 +192,13 @@ class CompilationEngine:
         """
         # Write statements until ending closing bracket of parent subroutine.
         while self.tokenizer.current_token != '}':
-            # Explicitly check statement
+            # Explicitly validate statement
             statement = self.get_token()
-            # self.vm_writer.write_line('// '+ self.get_full_statement(statement))
             if statement not in self.statements:
                 s = ', '.join(self.statements)
                 raise SyntaxError('Statement should start with one of ' + s)
 
-            # Compile relevant statement.
+            # Compile full statement.
             method = getattr(self, 'compile_' + statement)
             method()
 
@@ -419,6 +417,7 @@ class CompilationEngine:
             self._compile_identifier()
 
     def _compile_integer(self):
+        """Compiles the current token as an integer."""
         token = self.get_token()
         self.vm_writer.write_push('CONSTANT', abs(token))
         if token < 0:
@@ -426,6 +425,7 @@ class CompilationEngine:
 
 
     def _compile_string(self):
+        """Compiles the current token as a string."""
         current_token = self.tokenizer.current_token
         self.vm_writer.write_push('CONSTANT', len(current_token))
         self.vm_writer.write_call('String.new', 1)
@@ -440,6 +440,7 @@ class CompilationEngine:
         self.process() # Finished compiling string.
 
     def _compile_keyword(self):
+        """Compiles the current token as a keyword."""
         current_token = self.get_token()
         if current_token == 'this':
             self.vm_writer.write_push('POINTER', 0)
@@ -454,12 +455,14 @@ class CompilationEngine:
         self.vm_writer.write_push('CONSTANT', 0)
 
     def _compile_identifier(self):
+        """Compiles the current token as an identifier."""
         current_token = self.get_token()
         index = self.get_index(current_token)
         segment = self.get_kind(current_token)
         self.vm_writer.write_push(segment, index)
 
     def get_current_type(self):
+        """Returns the type of the current token."""
         return self.tokenizer.current_type
 
     def compile_expression_list(self):
@@ -504,6 +507,7 @@ class CompilationEngine:
         return token
 
     def peek(self):
+        """Peeks into the toknes deque."""
         return self.tokenizer.peek()
 
     def compile_array_entry(self):
@@ -511,8 +515,6 @@ class CompilationEngine:
         A helper routine to compile an array entry.
         """
         self.process('[')
-        # self.vm_writer.write_line('// ' + str(self.tokenizer.current_token))
-        # self.vm_writer.write_line('// ' + str(self.peek()))
         self.compile_expression()
         self.process(']')
 
@@ -524,6 +526,7 @@ class CompilationEngine:
             return None
 
     def get_kind(self, name):
+        """Returns the kind value of a symbol table value."""
         segment = self.symbol_table.kind_of(name)
         segment = segment.lower()
         if segment == 'field':
@@ -536,23 +539,12 @@ class CompilationEngine:
         return segment
 
     def get_index(self, name):
+        """Returns the index value of a symbol table value."""
         return self.symbol_table.index_of(name)
 
     def get_classname(self, filename):
+        """Returns the clean class name."""
         return filename.split('/')[-1].split('.')[0]
-
-    def get_full_statement(self, statement):
-        tokens = [statement]
-
-        idx = 0
-        while True:
-            curr = self.tokenizer.tokens[idx]
-            if curr == ';':
-                break
-            tokens.append(str(curr))
-            idx += 1
-
-        return ' '.join(tokens)
 
     def close(self):
         """
