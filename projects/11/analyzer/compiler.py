@@ -1,4 +1,5 @@
 import re
+import inspect
 
 from writer import VMWriter
 from table import SymbolTable
@@ -486,9 +487,10 @@ class CompilationEngine:
         and advances to get the next token.
         """
 
-        if string and self.tokenizer.current_token != string:
+        t = self.tokenizer.current_token
+        if string and t != string:
             caller = inspect.stack()[1][3]
-            msg = 'Invalid token found in {}, expected: {}'.format(caller, string)
+            msg = 'Invalid token rasied from {}. Got {} when expected: {}'.format(caller, string, t)
             raise SyntaxError(msg)
 
         if self.tokenizer.has_more_tokens():
