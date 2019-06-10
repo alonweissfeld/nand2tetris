@@ -18,3 +18,6 @@ projects/09/**/*.vm
 
 # XML files within project 10
 projects/10/**/*.xml
+
+# VM files within project 11
+projects/11/**/*.vm
