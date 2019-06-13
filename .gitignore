@@ -21,3 +21,7 @@ projects/10/**/*.xml
 
 # VM files within project 11
 projects/11/**/*.vm
+
+# Ignore anything which is added to the ClassTest
+# directories (vm or class jack files).
+projects/12/*Test/*
