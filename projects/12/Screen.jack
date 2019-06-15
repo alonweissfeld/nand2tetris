@@ -6,30 +6,112 @@
 /**
  * A library of functions for displaying graphics on the screen.
  * The Hack physical screen consists of 512 rows (indexed 0..511, top to bottom)
- * of 256 pixels each (indexed 0..255, left to right). The top left pixel on 
+ * of 256 pixels each (indexed 0..255, left to right). The top left pixel on
  * the screen is indexed (0,0).
  */
 class Screen {
+    static Array screen, twoToThe;
+    static int screenStart, screenEnd;
+    static boolean white, black, currentColor;
 
     /** Initializes the Screen. */
     function void init() {
+        // The 'screen' is defined from the 16384 pixel to the 24575 pixel.
+        let screenStart = 16384;
+        let screenEnd = 24575;
+        let screen = screenStart;
+
+        // White is represented by false, black by true.
+        let white = false;
+        let black = true;
+        let currentColor = true;
+
+        // Construct twoToThe array values.
+        let twoToThe = Array.new(16);
+        let twoToThe[0] = 1;
+        let twoToThe[1] = 2;
+        let twoToThe[2] = 4;
+        let twoToThe[3] = 8;
+        let twoToThe[4] = 16;
+        let twoToThe[5] = 32;
+        let twoToThe[6] = 64;
+        let twoToThe[7] = 128;
+        let twoToThe[8] = 256;
+        let twoToThe[9] = 512;
+        let twoToThe[10] = 1024;
+        let twoToThe[11] = 2048;
+        let twoToThe[12] = 4096;
+        let twoToThe[13] = 8192;
+        let twoToThe[14] = 16384;
+        let twoToThe[15] = 16384 + 16384;
+
+        return;
     }
 
     /** Erases the entire screen. */
     function void clearScreen() {
+        var int p;
+        let p = 0;
+        while (p < (screenEnd - screenStart + 1)) {
+            let screen[p] = white;
+            let p = p + 1;
+        }
+        return;
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
+        let currentColor = b;
+        return;
     }
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
+        var int addr;
+        var int mask;
+
+        // Validate (x, y) position.
+        if ((x < 0) | (x > 511) | (y < 0) | (y > 255)) {
+            do Sys.error(7); // Illegal pixel coordinates.
+        }
+
+        let addr = (y * 32) + (x / 16);
+        let mask = Screen._twoToThePower(x & 15);
+
+        if (currentColor) {
+            let screen[addr] = screen[addr] | mask;
+        } else {
+            let screen[addr] = screen[addr] & ~mask;
+        }
+        return;
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+    }
+
+    /** Helper routine to draw horizontal line. */
+    function void _drawHorizontalLine(int x, int y, int dy) {
+        var int i;
+        let i = 0;
+        while (~(i > dy)) {
+            do Screen.drawPixel(x, y + i);
+            let i = i + 1;
+        }
+        return;
+    }
+
+    /** Helper routine to draw vertical line. */
+    function void _drawVerticalLine(int x, int y, int dx) {
+        var int i;
+        let i = 0;
+        while (~(i > dx)) {
+            do Screen.drawPixel(x + i, y);
+            let i = i + 1;
+        }
+
+        return;
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
@@ -39,5 +121,10 @@ class Screen {
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+    }
+
+    /** Returns the value of 2 to the given power */
+    function int _twoToThePower(int p) {
+        return twoToThe[p];
     }
 }
