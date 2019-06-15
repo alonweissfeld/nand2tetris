@@ -7,28 +7,92 @@
  * This library provides two services: direct access to the computer's main
  * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
  * consists of 32,768 words, each holding a 16-bit binary number.
- */ 
+ */
 class Memory {
+    static Array ram, heap;
+    static int base, max, length, next, end, last;
 
     /** Initializes the class. */
     function void init() {
+        let ram = 0;
+        let base = 2048;
+        let heap = base;
+
+        let max = 16384;
+        let end = -1;
+
+        // The size of the frag.
+        let heap[1] = max - base;
+
+        // The next node available (starting with one big node)
+        let heap[0] = end;
+        let last = heap;
+        return;
     }
 
     /** Returns the RAM value at the given address. */
     function int peek(int address) {
+        return ram[address];
     }
 
     /** Sets the RAM value at the given address to the given value. */
     function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
     }
 
     /** Finds an available RAM block of the given size and returns
      *  a reference to its base address. */
     function int alloc(int size) {
+        // We iterate over the list to find a big enough memory fragment.
+        var int curr, prev, next, addr;
+        let next = heap[0];
+        let curr = heap[1];
+        let prev = heap[0];
+        let addr = -1;
+
+        while (~(heap[next] = end) & (heap[curr] < size)) {
+            let prev = next;
+            let next = heap[next];
+            let curr = heap[next + 1];
+        }
+
+        if ((heap[next] = end) & (heap[curr] < size)) {
+            // We didn't find big enough space.
+            return -1;
+        }
+
+        if (size + 2 = heap[curr]) {
+            let addr = next;
+            // Setting the size header of the returned object
+            let heap[addr - 1] = size;
+            let heap[prev] = heap[next];
+            if (last = next) {
+                let last = prev;
+            }
+        } else {
+            // The address returned will be subtracting the size from
+            // the end of the fragment.
+            let addr = heap + next + heap[curr] - 1 - size;
+
+            // Set the size header of the given address.
+            let heap[addr - 1] = size;
+
+            // Cut the used addresses + 2 for the header.
+            let heap[curr] = heap[curr] - size - 2;
+        }
+
+        return addr;
     }
 
     /** De-allocates the given object (cast as an array) by making
      *  it available for future allocations. */
     function void deAlloc(Array o) {
-    }    
+        // Set the last free fragment to be the block of the array.
+        // Now, it can be ran over.
+        let heap[last] = o - 2;
+        let last = o - 2;
+        let heap[last] = -1;
+        return;
+    }
 }
