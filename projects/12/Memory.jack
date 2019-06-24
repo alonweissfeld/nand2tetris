@@ -7,28 +7,87 @@
  * This library provides two services: direct access to the computer's main
  * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
  * consists of 32,768 words, each holding a 16-bit binary number.
- */ 
+ */
 class Memory {
+    static int max;
+    static Array ram;
+    static int heapBase, nextNode, endOfList;
 
     /** Initializes the class. */
     function void init() {
+        let ram = 0;
+        let heapBase = 2048;
+
+        let max = 16384;
+        let endOfList = -1;
+
+        // Each fragment allocation is initiated with the next node available
+        // and the size of the current fragment, which is currently
+        // the whole heap.
+        let nextNode = heapBase + 1;
+        let ram[heapBase] = max - heapBase;
+        let ram[nextNode] = endOfList;
+
+        return;
     }
 
     /** Returns the RAM value at the given address. */
     function int peek(int address) {
+        return ram[address];
     }
 
     /** Sets the RAM value at the given address to the given value. */
     function void poke(int address, int value) {
+        let ram[address] = value;
+        return;
     }
 
     /** Finds an available RAM block of the given size and returns
      *  a reference to its base address. */
     function int alloc(int size) {
+        var int currNode, prevNode, next, addr;
+
+        let currNode = heapBase;
+        let prevNode = heapBase;
+        let next = nextNode;
+        let addr = -1;
+
+        // Iterate over the list to find a big enough memory node fragment.
+        while (~(ram[next] = endOfList) & ~(ram[currNode] > size)) {
+            let prevNode = currNode;
+            let currNode = ram[next];
+            let next = ram[next + 1]; // Get the next node.
+        }
+
+        if (~(next = endOfList)) {
+            // We have found a free block in the heap.
+            if (size + 2 = currNode) {
+                let ram[prevNode + 1] = ram[currNode + 1];
+                let ram[currNode] = size + 1;
+                let addr = currNode + 1;
+            }
+            else {
+                // Undo.
+                let ram[currNode] = ram[currNode] - size - 1;
+                let addr = currNode + ram[currNode];
+                let ram[addr - 1] = size + 1;
+            }
+        }
+
+        return addr;
     }
 
     /** De-allocates the given object (cast as an array) by making
      *  it available for future allocations. */
     function void deAlloc(Array o) {
-    }    
+        // Set the last free fragment to be the block of the array.
+        // Now, it can be ran over.
+        var int idx;
+
+        let idx = o;
+        let ram[idx] = ram[idx - 1];
+        let ram[idx + 1] = ram[heapBase + 1];
+        let ram[heapBase + 1] = idx;
+        return;
+    }
 }
