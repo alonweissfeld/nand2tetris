@@ -9,24 +9,25 @@
  * consists of 32,768 words, each holding a 16-bit binary number.
  */
 class Memory {
-    static Array ram, heap;
-    static int base, max, length, next, end, last;
+    static int max;
+    static Array ram;
+    static int heapBase, nextNode, endOfList;
 
     /** Initializes the class. */
     function void init() {
         let ram = 0;
-        let base = 2048;
-        let heap = base;
+        let heapBase = 2048;
 
         let max = 16384;
-        let end = -1;
+        let endOfList = -1;
 
-        // The size of the frag.
-        let heap[1] = max - base;
+        // Each fragment allocation is initiated with the next node available
+        // and the size of the current fragment, which is currently
+        // the whole heap.
+        let nextNode = heapBase + 1;
+        let ram[heapBase] = max - heapBase;
+        let ram[nextNode] = endOfList;
 
-        // The next node available (starting with one big node)
-        let heap[0] = end;
-        let last = heap;
         return;
     }
 
@@ -44,42 +45,33 @@ class Memory {
     /** Finds an available RAM block of the given size and returns
      *  a reference to its base address. */
     function int alloc(int size) {
-        // We iterate over the list to find a big enough memory fragment.
-        var int curr, prev, next, addr;
-        let next = heap[0];
-        let curr = heap[1];
-        let prev = heap[0];
+        var int currNode, prevNode, next, addr;
+
+        let currNode = heapBase;
+        let prevNode = heapBase;
+        let next = nextNode;
         let addr = -1;
 
-        while (~(heap[next] = end) & (heap[curr] < size)) {
-            let prev = next;
-            let next = heap[next];
-            let curr = heap[next + 1];
+        // Iterate over the list to find a big enough memory node fragment.
+        while (~(ram[next] = endOfList) & ~(ram[currNode] > size)) {
+            let prevNode = currNode;
+            let currNode = ram[next];
+            let next = ram[next + 1]; // Get the next node.
         }
 
-        if ((heap[next] = end) & (heap[curr] < size)) {
-            // We didn't find big enough space.
-            return -1;
-        }
-
-        if (size + 2 = heap[curr]) {
-            let addr = next;
-            // Setting the size header of the returned object
-            let heap[addr - 1] = size;
-            let heap[prev] = heap[next];
-            if (last = next) {
-                let last = prev;
+        if (~(next = endOfList)) {
+            // We have found a free block in the heap.
+            if (size + 2 = currNode) {
+                let ram[prevNode + 1] = ram[currNode + 1];
+                let ram[currNode] = size + 1;
+                let addr = currNode + 1;
             }
-        } else {
-            // The address returned will be subtracting the size from
-            // the end of the fragment.
-            let addr = heap + next + heap[curr] - 1 - size;
-
-            // Set the size header of the given address.
-            let heap[addr - 1] = size;
-
-            // Cut the used addresses + 2 for the header.
-            let heap[curr] = heap[curr] - size - 2;
+            else {
+                // Undo.
+                let ram[currNode] = ram[currNode] - size - 1;
+                let addr = currNode + ram[currNode];
+                let ram[addr - 1] = size + 1;
+            }
         }
 
         return addr;
@@ -90,9 +82,12 @@ class Memory {
     function void deAlloc(Array o) {
         // Set the last free fragment to be the block of the array.
         // Now, it can be ran over.
-        let heap[last] = o - 2;
-        let last = o - 2;
-        let heap[last] = -1;
+        var int idx;
+
+        let idx = o;
+        let ram[idx] = ram[idx - 1];
+        let ram[idx + 1] = ram[heapBase + 1];
+        let ram[heapBase + 1] = idx;
         return;
     }
 }
